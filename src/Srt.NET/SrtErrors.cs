@@ -12,10 +12,14 @@ namespace Srt.Net;
 public static class SrtErrors
 {
     /// <summary>Formats a native error code. libsrt's text does not include the operating system error.</summary>
+    /// <remarks>Codes that libsrt has no text for, such as <see cref="SrtErrorCode.ConnectionFailed"/>, are described by their name and number.</remarks>
     public static string Describe(SrtErrorCode errorCode)
     {
-        // srt_strerror returns static text and ignores its second argument.
-        return Utf8Interop.Read(NativeMethods.srt_strerror((int)errorCode, 0));
+        // srt_strerror returns static text and ignores its second argument. Its table has an empty entry for the bare
+        // connection-failure category (2000).
+        string text = Utf8Interop.Read(NativeMethods.srt_strerror((int)errorCode, 0));
+
+        return text.Length != 0 ? text : $"SRT error {(int)errorCode} ({errorCode})";
     }
 
     /// <summary>Formats a native, predefined, or application-defined connection rejection reason.</summary>

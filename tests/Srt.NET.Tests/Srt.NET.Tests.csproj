@@ -20,6 +20,7 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="xunit.v3" />
+    <PackageReference Include="FsCheck" />
     <!-- Microsoft.Testing.Platform extensions, each off until a run passes its option (coverage, crashdump, hangdump). -->
     <PackageReference Include="Microsoft.Testing.Extensions.CodeCoverage" />
     <PackageReference Include="Microsoft.Testing.Extensions.CrashDump" />

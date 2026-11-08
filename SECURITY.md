@@ -51,7 +51,7 @@ diff -r release-contents nuget-contents && echo "Same contents as the attested r
 
 This covers every entry, including the nuspec and its dependencies, the MSBuild targets that run in consumers' builds, the native libraries, and the notices. You can also verify the attested files inside an extracted package one by one, for example `gh attestation verify buildTransitive/Srt.NET.targets ...`, but that does not show that the package contains nothing else, so prefer the whole-package comparison. `dotnet nuget verify --all srt.net.1.2.3.nupkg` checks nuget.org's repository signature, which shows that the package has not changed since nuget.org signed it.
 
-Each GitHub release also attaches the package SBOM (`Srt.NET.spdx.json`), one SPDX document per native runtime, and the Sigstore bundles (`*.sigstore.json`) for offline verification with `gh attestation verify --bundle`.
+Each GitHub release also attaches the package SBOM (`Srt.NET.spdx.json`), one SPDX document per native runtime, and the Sigstore bundles (`*.sigstore.json`) for offline verification with `gh attestation verify --bundle`. `Srt.NET.provenance.intoto.jsonl` holds the same provenance statement as a bare in-toto DSSE envelope, for tools that read that format; verify the Sigstore bundle, which also carries the signing certificate.
 
 The assembly's strong name identifies it; it is not a security boundary or tamper protection. Use the attestations.
 
