@@ -1,0 +1,14 @@
+/*
+ * ELF version script for libsrt.so (Linux runtimes).
+ *
+ * Exports only the public SRT C API. Everything else, including the statically linked
+ * OpenSSL, libstdc++ and libgcc code, stays local so the library cannot interpose on, or be
+ * interposed by, other copies of those libraries loaded into the same process.
+ * StageNative.cmake fails the build if any other symbol is exported.
+ */
+{
+  global:
+    srt_*;
+  local:
+    *;
+};

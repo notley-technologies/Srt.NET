@@ -1,0 +1,23 @@
+<!--
+  This Source Code Form is subject to the terms of the Mozilla Public
+  License, v. 2.0. If a copy of the MPL was not distributed with this
+  file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
+  Copyright (c) 2026 Noah Davis
+-->
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Selects artifacts/runtimes/<rid>/native and the matching PlatformTarget; override with -p:NativeRuntimeIdentifier=<rid>. -->
+  <Import Project="../../build/NativeRuntime.props" />
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+    <IsPackable>false</IsPackable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <!-- BenchmarkDotNet requires public, unsealed benchmark classes with instance methods. -->
+    <NoWarn>$(NoWarn);CA1001;CA1822</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="BenchmarkDotNet" />
+    <ProjectReference Include="../../src/Srt.NET/Srt.NET.csproj" />
+  </ItemGroup>
+</Project>

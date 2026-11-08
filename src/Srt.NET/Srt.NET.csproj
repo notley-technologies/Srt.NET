@@ -1,0 +1,152 @@
+<!--
+  This Source Code Form is subject to the terms of the Mozilla Public
+  License, v. 2.0. If a copy of the MPL was not distributed with this
+  file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
+  Copyright (c) 2026 Noah Davis
+-->
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFrameworks>netstandard2.0;net8.0</TargetFrameworks>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <IsAotCompatible Condition="$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net8.0'))">true</IsAotCompatible>
+    <EnablePackageValidation>true</EnablePackageValidation>
+    <PackageId>Srt.NET</PackageId>
+    <Description>.NET sockets for Secure Reliable Transport (SRT), using direct P/Invoke to a bundled, encryption-enabled libsrt.</Description>
+    <PackageTags>srt;secure-reliable-transport;streaming;video;udp;libsrt</PackageTags>
+    <PackageReadmeFile>PACKAGE.md</PackageReadmeFile>
+    <PackageLicenseExpression>MPL-2.0</PackageLicenseExpression>
+    <PackageReleaseNotes>https://github.com/notley-technologies/Srt.NET/blob/main/CHANGELOG.md</PackageReleaseNotes>
+    <RequireAllNativeRuntimes Condition="'$(RequireAllNativeRuntimes)' == ''">true</RequireAllNativeRuntimes>
+  </PropertyGroup>
+
+  <PropertyGroup Label="SBOM">
+    <!--
+      Microsoft.Sbom.Targets adds an SPDX 2.2 manifest (_manifest/spdx_2.2/manifest.spdx.json) to the package after
+      Pack, but only when GenerateSBOM is true. CI sets it on the final all-runtime pack.
+    -->
+    <SbomGenerationNamespaceBaseUri>https://github.com/notley-technologies/Srt.NET/sbom</SbomGenerationNamespaceBaseUri>
+    <!--
+      Component detection scans a folder that holds only a copy of project.assets.json. Scanning the project folder
+      would also read the nuspec files that Pack leaves in obj/, listing Srt.NET (and stale versions of it) as its own
+      dependency.
+    -->
+    <_SrtSbomComponentDirectory>$([MSBuild]::NormalizeDirectory('$(MSBuildProjectDirectory)', '$(BaseIntermediateOutputPath)', 'sbom-components'))</_SrtSbomComponentDirectory>
+    <SbomGenerationBuildComponentPath Condition="'$(SbomGenerationBuildComponentPath)' == ''">$(_SrtSbomComponentDirectory)</SbomGenerationBuildComponentPath>
+    <!-- SPDX documents for libsrt and its statically linked OpenSSL, one per runtime, written by native/StageNative.cmake. -->
+    <SrtNativeSbomDirectory Condition="'$(SrtNativeSbomDirectory)' == ''">$([MSBuild]::NormalizeDirectory('$(MSBuildThisFileDirectory)', '..', '..', 'artifacts', 'sbom'))</SrtNativeSbomDirectory>
+  </PropertyGroup>
+
+  <!--
+    These versions become the minimum versions in the published nuspec, which every .NET Framework and .NET Standard
+    consumer inherits. They are deliberately chosen, supported releases that provide the APIs used and have no known
+    advisories, and the package consumer test runs against them. Raise them only on purpose, with a CHANGELOG entry.
+    Tests and tools resolve the newer central versions in Directory.Packages.props.
+  -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
+    <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" VersionOverride="8.0.0" />
+    <PackageReference Include="System.Memory" VersionOverride="4.5.5" />
+  </ItemGroup>
+
+  <ItemGroup Label="Build tooling">
+    <PackageReference Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.Sbom.Targets" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup Label="Public API">
+    <!-- Per target framework, because net8.0 adds Span and Memory overrides that netstandard2.0 does not have. -->
+    <AdditionalFiles Include="PublicAPI/$(TargetFramework)/PublicAPI.Shipped.txt" />
+    <AdditionalFiles Include="PublicAPI/$(TargetFramework)/PublicAPI.Unshipped.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Srt.NET.Tests" />
+    <InternalsVisibleTo Include="Srt.NET.Benchmarks" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!--
+      The nuget.org readme: nuget.org keeps only absolute links and allow-listed images, so README.md is not used. Pack
+      collects files in the outer build, which has no default None items, so the file is included explicitly.
+    -->
+    <None Remove="PACKAGE.md" />
+    <None Include="PACKAGE.md" Pack="true" PackagePath="/" />
+    <None Include="../../docs/*.md" Pack="true" PackagePath="docs/" />
+    <None Include="../../THIRD_PARTY_NOTICES.md" Pack="true" PackagePath="/" />
+    <!-- Srt.NET's own license text, copied with the dependency notices into consumers' licenses/Srt.NET/ folder. -->
+    <None Include="../../LICENSE.txt" Pack="true" PackagePath="licenses/Srt.NET-LICENSE.txt" />
+    <None Include="../../artifacts/runtimes/**/*" Pack="true" PackagePath="runtimes/%(RecursiveDir)%(Filename)%(Extension)" />
+    <None Include="../../artifacts/licenses/libsrt-*.txt;../../artifacts/licenses/openssl-*.txt" Pack="true" PackagePath="licenses/%(RecursiveDir)%(Filename)%(Extension)" />
+    <None Include="$(SrtNativeSbomDirectory)native-*.spdx.json" Pack="true" PackagePath="sbom/" />
+    <None Include="../../buildTransitive/Srt.NET.targets" Pack="true" PackagePath="buildTransitive/" />
+  </ItemGroup>
+
+  <Target Name="ValidateNativePackage" BeforeTargets="GenerateNuspec" Condition="'$(RequireAllNativeRuntimes)' == 'true'">
+    <ItemGroup>
+      <_SrtNativeRuntime Include="win-x64" Library="srt.dll" />
+      <_SrtNativeRuntime Include="linux-x64;linux-arm64;linux-musl-x64;linux-musl-arm64" Library="libsrt.so" />
+      <_SrtNativeRuntime Include="osx-x64;osx-arm64" Library="libsrt.dylib" />
+    </ItemGroup>
+    <ItemGroup>
+      <_SrtMissingNativeLibrary Include="@(_SrtNativeRuntime->'artifacts/runtimes/%(Identity)/native/%(Library)')" Condition="!Exists('../../artifacts/runtimes/%(_SrtNativeRuntime.Identity)/native/%(_SrtNativeRuntime.Library)')" />
+      <_SrtMissingNativeSbom Include="@(_SrtNativeRuntime->'native-%(Identity).spdx.json')" Condition="'$(GenerateSBOM)' == 'true' And !Exists('$(SrtNativeSbomDirectory)native-%(_SrtNativeRuntime.Identity).spdx.json')" />
+    </ItemGroup>
+    <Error Condition="'@(_SrtMissingNativeLibrary)' != ''" Text="Build libsrt for every runtime before packing a release. Missing: @(_SrtMissingNativeLibrary, ', ')." />
+    <Error Condition="'@(_SrtMissingNativeSbom)' != ''" Text="Native SBOM documents are missing from $(SrtNativeSbomDirectory): @(_SrtMissingNativeSbom, ', '). The native build writes one per runtime." />
+    <Error Condition="!Exists('../../artifacts/licenses/libsrt-MPL-2.0.txt') Or !Exists('../../artifacts/licenses/openssl-LICENSE.txt')" Text="Native dependency licenses are missing. Run the native build script." />
+    <Error Condition="!Exists('../../artifacts/licenses/libsrt-COPYRIGHT.txt') Or !Exists('../../artifacts/licenses/openssl-COPYRIGHT.txt')" Text="Native dependency copyright notices are missing. Run the native build script." />
+  </Target>
+
+  <!-- Release guard: a tag build must never produce a package without a license (MPL-2.0, set above). -->
+  <!--
+    Tag builds pin the package readme's repository links (blob/main) and the release notes to the release tag, so the
+    readme that ships with a version keeps describing that version. Other builds pack PACKAGE.md unchanged.
+  -->
+  <Target Name="PinReleaseLinks" BeforeTargets="_GetPackageFiles" DependsOnTargets="MinVer" Condition="'$(GITHUB_REF_TYPE)' == 'tag'">
+    <PropertyGroup>
+      <_SrtPinnedReadme>$(IntermediateOutputPath)PACKAGE.md</_SrtPinnedReadme>
+      <_SrtReadmeText>$([System.IO.File]::ReadAllText('$(MSBuildProjectDirectory)/PACKAGE.md').Replace('/blob/main/', '/blob/v$(PackageVersion)/'))</_SrtReadmeText>
+      <PackageReleaseNotes>https://github.com/notley-technologies/Srt.NET/releases/tag/v$(PackageVersion)</PackageReleaseNotes>
+    </PropertyGroup>
+    <WriteLinesToFile File="$(_SrtPinnedReadme)" Lines="$([MSBuild]::Escape('$(_SrtReadmeText)'))" Overwrite="true" WriteOnlyWhenDifferent="true" />
+    <ItemGroup>
+      <None Remove="PACKAGE.md" />
+      <None Include="$(_SrtPinnedReadme)" Pack="true" PackagePath="/" />
+    </ItemGroup>
+  </Target>
+
+  <Target Name="ValidateReleaseLicense" BeforeTargets="GenerateNuspec" Condition="'$(GITHUB_REF_TYPE)' == 'tag'">
+    <Error Condition="'$(PackageLicenseExpression)' == '' And '$(PackageLicenseFile)' == ''" Text="Select Srt.NET's license (PackageLicenseExpression or PackageLicenseFile) before tagging a release." />
+  </Target>
+
+  <!--
+    Microsoft.Sbom.Targets reads $(Version) during evaluation, before MinVer computes it, so the SBOM would record 1.0.0.
+    This runs after Pack (and so after MinVer) and right before the SBOM target. It also prepares the component detection
+    folder and links each native SPDX document as an external document reference, unless the caller passes
+    SbomGenerationExternalDocumentReferenceListFile.
+
+    sbom-tool also lists each external document as a file, relative to the folder it scans: the unzipped package, which
+    GenerateSbomTarget creates at $(PackageOutputPath)$(PackageId).$(PackageVersion).$(ShortUnzipGuidFolder).temp. The
+    list therefore names the packed copies under sbom/ in that folder (they exist by the time sbom-tool reads the list),
+    so the manifest has no entries outside the package. ShortUnzipGuidFolder and that folder layout are internal to
+    Microsoft.Sbom.Targets: recheck them on every upgrade (verify-package fails if the manifest names a missing file).
+  -->
+  <Target Name="PrepareSbomGeneration" BeforeTargets="GenerateSbomTarget" Condition="'$(GenerateSBOM)' == 'true'">
+    <ItemGroup>
+      <_SrtNativeSbomDocument Include="$(SrtNativeSbomDirectory)native-*.spdx.json" />
+    </ItemGroup>
+    <PropertyGroup>
+      <SbomGenerationPackageVersion>$(PackageVersion)</SbomGenerationPackageVersion>
+      <_SrtSbomExternalDocumentList>$([MSBuild]::NormalizePath('$(MSBuildProjectDirectory)', '$(IntermediateOutputPath)', 'sbom-external-documents.txt'))</_SrtSbomExternalDocumentList>
+      <_SrtSbomPackedDocumentDirectory>$([MSBuild]::NormalizeDirectory($([System.IO.Path]::GetFullPath('$(PackageOutputPath)')), '$(PackageId).$(PackageVersion).$(ShortUnzipGuidFolder).temp', 'sbom'))</_SrtSbomPackedDocumentDirectory>
+    </PropertyGroup>
+    <RemoveDir Directories="$(_SrtSbomComponentDirectory)" Condition="'$(SbomGenerationBuildComponentPath)' == '$(_SrtSbomComponentDirectory)'" />
+    <Copy SourceFiles="$(ProjectAssetsFile)" DestinationFolder="$(_SrtSbomComponentDirectory)" Condition="'$(SbomGenerationBuildComponentPath)' == '$(_SrtSbomComponentDirectory)'" />
+    <!-- WriteLinesToFile writes platform line endings, which sbom-tool needs to read one path per line. -->
+    <WriteLinesToFile Condition="'$(SbomGenerationExternalDocumentReferenceListFile)' == '' And '@(_SrtNativeSbomDocument)' != ''" File="$(_SrtSbomExternalDocumentList)" Lines="@(_SrtNativeSbomDocument->'$(_SrtSbomPackedDocumentDirectory)%(Filename)%(Extension)')" Overwrite="true" />
+    <PropertyGroup Condition="'$(SbomGenerationExternalDocumentReferenceListFile)' == '' And '@(_SrtNativeSbomDocument)' != ''">
+      <SbomGenerationExternalDocumentReferenceListFile>$(_SrtSbomExternalDocumentList)</SbomGenerationExternalDocumentReferenceListFile>
+    </PropertyGroup>
+  </Target>
+</Project>

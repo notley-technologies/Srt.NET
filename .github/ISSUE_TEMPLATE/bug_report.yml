@@ -1,0 +1,86 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at https://mozilla.org/MPL/2.0/.
+#
+# Copyright (c) 2026 Noah Davis
+
+name: Bug report
+description: Report incorrect behavior, a crash, or a packaging problem in Srt.NET.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Report security vulnerabilities privately instead (see SECURITY.md). Problems that reproduce with libsrt alone
+        belong in the [upstream libsrt project](https://github.com/Haivision/srt/issues).
+
+  - type: input
+    id: version
+    attributes:
+      label: Srt.NET version
+      description: The NuGet package version, or the commit if you built from source.
+      placeholder: 0.1.0
+    validations:
+      required: true
+
+  - type: dropdown
+    id: rid
+    attributes:
+      label: Runtime identifier
+      description: The native runtime the application loads.
+      options:
+        - win-x64
+        - linux-x64
+        - linux-arm64
+        - linux-musl-x64
+        - linux-musl-arm64
+        - osx-x64
+        - osx-arm64
+        - Other (describe below)
+    validations:
+      required: true
+
+  - type: input
+    id: environment
+    attributes:
+      label: .NET runtime and operating system
+      description: Include the C library for Linux (glibc or musl version) and whether the app is Native AOT, trimmed, or single-file.
+      placeholder: .NET 10.0.14 on Ubuntu 24.04 (glibc 2.39), framework-dependent
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: What you expected, what happened instead, and any exception with its SrtErrorCode or rejection reason.
+    validations:
+      required: true
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: Minimal reproduction
+      description: The smallest program that shows the problem, including socket options and both caller and listener roles if relevant.
+      render: csharp
+    validations:
+      required: true
+
+  - type: textarea
+    id: native
+    attributes:
+      label: Native build manifest and SRT logs
+      description: |
+        Optional but very helpful: the package's runtimes/<rid>/native/srt.build-info.json and SrtLogging output at Debug level.
+        Remove passphrases, stream IDs, and addresses you do not want to share.
+      render: text
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checks
+      options:
+        - label: I searched the existing issues and the documentation.
+          required: true
+        - label: The report contains no secrets (passphrases, tokens, or private stream IDs).
+          required: true
