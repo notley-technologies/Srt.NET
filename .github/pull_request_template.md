@@ -15,3 +15,5 @@
 - [ ] Documentation (`README.md`, the package readme `src/Srt.NET/PACKAGE.md`, `docs/`, XML comments) is updated.
 - [ ] Native changes only: `native/versions.json`, the dependency notices, and the native version test are updated, and the full CI matrix passed.
 - [ ] Workflow changes only: actions are pinned to full commit SHAs with a version comment, and actionlint passes.
+
+<!-- Temporary change to check that documentation-only pull requests skip the build. -->
