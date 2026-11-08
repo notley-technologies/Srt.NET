@@ -130,12 +130,19 @@ public sealed class StreamTests : IClassFixture<RuntimeFixture>
         using SrtStream input = new(listener.Accept(TimeSpan.FromSeconds(5)), ownsSocket: true);
         using CancellationTokenSource timeout = new(Deadline);
 
-        sender.Send([1, 2, 3], TimeSpan.FromSeconds(5));
+        sender.Send([1, 2, 3, 4, 5, 6], TimeSpan.FromSeconds(5));
         byte[] buffer = new byte[16];
-        Assert.Equal(3, await input.ReadAsync(buffer, 0, buffer.Length, timeout.Token));
+        Assert.Equal(3, await input.ReadAsync(buffer, 0, 3, timeout.Token));
 
-        // No orderly close arrives: the connection breaks at the peer idle timeout, which must not read as the end.
+        // No orderly close arrives: the connection breaks at the peer idle timeout. libsrt releases a broken socket on
+        // its next cleanup pass, after which a break and an orderly close look the same; it keeps the socket while
+        // received data is unread, so leave some unread to observe the break deterministically.
         relay.DropEverything();
+        Assert.True(SpinWait.SpinUntil(() => input.Socket.State == SrtSocketState.Broken, Deadline));
+
+        // Data received before the break is still delivered, and then the break must not read as the end.
+        Assert.Equal(3, await input.ReadAsync(buffer, 0, buffer.Length, timeout.Token));
+        Assert.Equal(new byte[] { 4, 5, 6 }, buffer.Take(3));
         await Assert.ThrowsAnyAsync<IOException>(() => input.ReadAsync(buffer, 0, buffer.Length, timeout.Token));
 
         // Once libsrt has released the broken socket it reports InvalidSocket, as after an orderly close. The stream has
