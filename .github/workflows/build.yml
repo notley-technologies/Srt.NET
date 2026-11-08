@@ -419,6 +419,10 @@ jobs:
           cp "$PROVENANCE" artifacts/release/Srt.NET.provenance.sigstore.json
           cp "$SBOM_ATTESTATION" artifacts/release/Srt.NET.sbom.sigstore.json
 
+          # The same provenance attestation as a bare DSSE envelope (the bundle without its verification material), in
+          # the *.intoto.jsonl form that SLSA tooling and OpenSSF Scorecard look for on release assets.
+          jq -ce '.dsseEnvelope' "$PROVENANCE" > artifacts/release/Srt.NET.provenance.intoto.jsonl
+
           prerelease=()
           if [[ "$TAG" == *-* ]]; then
             prerelease=(--prerelease)
@@ -434,7 +438,7 @@ jobs:
           gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --verify-tag --draft "${prerelease[@]}" \
             --title "Srt.NET ${TAG#v}" --notes-file artifacts/release/notes.md \
             artifacts/packages/*.nupkg artifacts/packages/*.snupkg \
-            artifacts/release/*.spdx.json artifacts/release/*.sigstore.json
+            artifacts/release/*.spdx.json artifacts/release/*.sigstore.json artifacts/release/*.intoto.jsonl
 
   publish:
     if: github.event_name == 'push' && github.ref_type == 'tag'

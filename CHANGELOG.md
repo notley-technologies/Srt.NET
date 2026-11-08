@@ -25,7 +25,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - The Windows library frees OpenSSL's per-thread state whenever one of libsrt's worker threads exits, so encrypted outbound connections do not leak memory as their threads come and go.
 - The assembly is strong-named (public key token `386853069135f01e`), so strong-named .NET Framework applications can reference it.
 - The NuGet package embeds an SPDX 2.2 software bill of materials (`_manifest/spdx_2.2/manifest.spdx.json`) and one SPDX document per native runtime (`sbom/`) that records libsrt, including the licenses of its embedded files, the statically linked OpenSSL, and the statically linked compiler runtime.
-- Releases carry build provenance attestations for the `.nupkg` and `.snupkg` and for the package contents (the managed assemblies, the native libraries, the nuspec, and the `buildTransitive` MSBuild targets), and an SBOM attestation for the `.nupkg` release asset. See [verifying releases](https://github.com/notley-technologies/Srt.NET/blob/main/SECURITY.md#verifying-releases).
+- Releases carry build provenance attestations for the `.nupkg` and `.snupkg` and for the package contents (the managed assemblies, the native libraries, the nuspec, and the `buildTransitive` MSBuild targets), and an SBOM attestation for the `.nupkg` release asset; the provenance statement is also attached as an in-toto DSSE envelope (`Srt.NET.provenance.intoto.jsonl`). See [verifying releases](https://github.com/notley-technologies/Srt.NET/blob/main/SECURITY.md#verifying-releases).
 
 ### Security
 
