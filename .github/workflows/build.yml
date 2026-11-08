@@ -31,6 +31,44 @@ defaults:
     shell: bash
 
 jobs:
+  # A pull request that changes only files on this allow-list skips the build, test, compatibility and package jobs;
+  # lint still runs and CI result still reports. Files packed into the package or read by the release (PACKAGE.md,
+  # docs/, THIRD_PARTY_NOTICES.md, LICENSE.txt, CHANGELOG.md) are deliberately not listed. Pushes to main, tags and
+  # manual runs always build everything.
+  changes:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      build: ${{ steps.diff.outputs.build }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        if: github.event_name == 'pull_request'
+        with:
+          fetch-depth: 2 # The pull request merge commit and its base parent.
+          persist-credentials: false
+
+      - name: Decide whether the build is needed
+        id: diff
+        env:
+          EVENT: ${{ github.event_name }}
+          SKIPPABLE: >-
+            ^(README\.md|CONTRIBUTING\.md|SECURITY\.md|\.github/CODEOWNERS|\.github/pull_request_template\.md|\.github/ISSUE_TEMPLATE/.*|examples/README\.md|tools/README\.md|native/README\.md)$
+        run: |
+          build=true
+
+          if [ "$EVENT" = pull_request ]; then
+            # The checkout is the merge commit, so its first parent is the base it would merge into.
+            changed=$(git diff --name-only HEAD^1 HEAD)
+            printf 'Changed files:\n%s\n' "$changed"
+
+            if [ -n "$changed" ] && ! grep -qvE "$SKIPPABLE" <<< "$changed"; then
+              build=false
+              echo "::notice::Only documentation outside the package changed; the build, test, and package jobs are skipped."
+            fi
+          fi
+
+          echo "build=$build" >> "$GITHUB_OUTPUT"
+
   lint:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
@@ -57,6 +95,8 @@ jobs:
 
   native:
     name: build and test (${{ matrix.rid }})
+    needs: [changes]
+    if: needs.changes.outputs.build == 'true'
     strategy:
       fail-fast: false
       matrix:
@@ -118,7 +158,7 @@ jobs:
             artifacts/runtimes/${{ matrix.rid }}
             artifacts/licenses
             artifacts/sbom/native-${{ matrix.rid }}.spdx.json
-          key: native-${{ matrix.rid }}-${{ matrix.os }}-${{ steps.toolchain.outputs.image }}-${{ hashFiles('native/**') }}-${{ env.NATIVE_CMAKE_ARGS }}
+          key: native-${{ matrix.rid }}-${{ matrix.os }}-${{ steps.toolchain.outputs.image }}-${{ hashFiles('native/**', '!native/**/*.md') }}-${{ env.NATIVE_CMAKE_ARGS }}
 
       # The script also fails when the ELF gate fails (glibc 2.28 or older, no libstdc++, only srt_* exports).
       - name: Build native libraries (Linux)
@@ -305,16 +345,26 @@ jobs:
   ci-result:
     name: CI result
     if: ${{ always() }}
-    needs: [lint, native, compat, package]
+    needs: [changes, lint, native, compat, package]
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
       - name: Require every job to succeed
         env:
-          RESULTS: ${{ join(needs.*.result, ' ') }}
+          BUILD: ${{ needs.changes.outputs.build }}
+          ALWAYS: ${{ needs.changes.result }} ${{ needs.lint.result }}
+          BUILD_JOBS: ${{ needs.native.result }} ${{ needs.compat.result }} ${{ needs.package.result }}
         run: |
-          for result in $RESULTS; do
+          for result in $ALWAYS; do
             if [ "$result" != success ]; then
+              echo "::error::A required job finished with result '$result'."
+              exit 1
+            fi
+          done
+
+          # The build jobs may only be skipped when the changes job decided they were not needed.
+          for result in $BUILD_JOBS; do
+            if [ "$result" != success ] && ! { [ "$BUILD" = false ] && [ "$result" = skipped ]; }; then
               echo "::error::A required job finished with result '$result'."
               exit 1
             fi
