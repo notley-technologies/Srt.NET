@@ -1,0 +1,14 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at https://mozilla.org/MPL/2.0/.
+#
+# Copyright (c) 2026 Noah Davis
+
+blank_issues_enabled: false
+contact_links:
+  - name: Report a security vulnerability
+    url: https://github.com/notley-technologies/Srt.NET/security/advisories/new
+    about: Report vulnerabilities privately through GitHub. Do not open a public issue.
+  - name: libsrt protocol or native library bugs
+    url: https://github.com/Haivision/srt/issues
+    about: Problems that reproduce with libsrt alone belong in the upstream project.

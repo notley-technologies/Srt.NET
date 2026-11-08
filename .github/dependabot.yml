@@ -1,0 +1,55 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at https://mozilla.org/MPL/2.0/.
+#
+# Copyright (c) 2026 Noah Davis
+
+version: 2
+updates:
+  # Workflow actions are pinned to full commit SHAs; Dependabot updates the SHA and its version comment together.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ['*']
+
+  # Also covers the local tools in .config/dotnet-tools.json.
+  - package-ecosystem: nuget
+    directory: /
+    schedule:
+      interval: weekly
+    ignore:
+      # Package consumer templates reference the locally built package under test.
+      - dependency-name: Srt.NET*
+      # Analyzer releases track the Roslyn version of an SDK feature band. A newer analyzer than the compiler
+      # fails the build (CS9057 under TreatWarningsAsErrors), so it moves together with the SDK by hand.
+      - dependency-name: Microsoft.CodeAnalysis.PublicApiAnalyzers
+        update-types: ['version-update:semver-minor', 'version-update:semver-major']
+      # The library's netstandard2.0 dependencies. Their versions in src/Srt.NET/Srt.NET.csproj are the minimum
+      # versions every consumer inherits, so they change only on purpose, with a CHANGELOG entry (NuGetAudit flags
+      # an advisory against them). The central versions that tests resolve are updated by hand at the same time.
+      - dependency-name: Microsoft.Bcl.AsyncInterfaces
+      - dependency-name: System.Memory
+    groups:
+      tests-and-tools:
+        patterns: ['xunit*', 'BenchmarkDotNet', 'Microsoft.*', 'MinVer', 'StyleCop.*', 'dotnet-reportgenerator-globaltool']
+
+  # Pinned build and test images. They are part of the native cache key, so an update rebuilds the Linux runtimes.
+  - package-ecosystem: docker
+    directory: /native/docker
+    schedule:
+      interval: weekly
+    ignore:
+      # Digest refreshes and manylinux date tags still update. The .NET major versions move by hand with global.json
+      # and the test target frameworks (the runtime image supplies .NET 8 for the net8.0 tests). Dependabot names
+      # these images without the registry, as dotnet/runtime and dotnet/sdk.
+      - dependency-name: dotnet/*
+        update-types: ['version-update:semver-major', 'version-update:semver-minor']
+      # Alpine 3.22 is the oldest supported branch and sets the musl baseline of the musl runtimes; move it by hand.
+      - dependency-name: alpine
+        update-types: ['version-update:semver-major', 'version-update:semver-minor']
+    groups:
+      container-images:
+        patterns: ['*']

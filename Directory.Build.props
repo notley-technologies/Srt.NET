@@ -1,0 +1,61 @@
+<!--
+  This Source Code Form is subject to the terms of the Mozilla Public
+  License, v. 2.0. If a copy of the MPL was not distributed with this
+  file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
+  Copyright (c) 2026 Noah Davis
+-->
+<Project>
+  <PropertyGroup>
+    <LangVersion>14.0</LangVersion>
+    <Nullable>enable</Nullable>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <AnalysisLevel>10.0</AnalysisLevel>
+  </PropertyGroup>
+
+  <PropertyGroup Label="Strong naming">
+    <!--
+      The key pair is committed on purpose, following Microsoft's open-source library guidance. Strong naming is
+      assembly identity, not tamper protection. Never replace the key after the first release: that is a binary break.
+      The absolute path also covers projects outside this tree that import these props, such as BenchmarkDotNet's
+      generated projects.
+    -->
+    <SignAssembly>true</SignAssembly>
+    <AssemblyOriginatorKeyFile>$(MSBuildThisFileDirectory)Srt.NET.snk</AssemblyOriginatorKeyFile>
+    <!-- Full public key of Srt.NET.snk (token 386853069135f01e). The SDK adds it to each InternalsVisibleTo item without Key metadata. -->
+    <PublicKey>0024000004800000940000000602000000240000525341310004000001000100c9e0f220d574932d4e3227a9ca3dea031c252558bb3ca0b8937cb932a8f9f394e86d9ec71912e3a6fb037c0e6146a5e3364f425b502f57e3dd1721903179c73e9ab5dd94e6145301078be1d2b58787a1fe2e14a17e025962ea7721dfd70b9657f4c7c3ecc8016649034b63137ed40efea3c22b6c4375669e03a95c7e72467dc1</PublicKey>
+  </PropertyGroup>
+
+  <PropertyGroup Label="Versioning">
+    <!-- MinVer derives the version from the nearest vX.Y.Z tag; untagged commits become prereleases. -->
+    <MinVerTagPrefix>v</MinVerTagPrefix>
+    <MinVerMinimumMajorMinor>0.1</MinVerMinimumMajorMinor>
+  </PropertyGroup>
+
+  <PropertyGroup Label="Dependency auditing">
+    <!-- Audit direct and transitive packages against nuget.org advisories instead of relying on SDK defaults. -->
+    <NuGetAudit>true</NuGetAudit>
+    <NuGetAuditMode>all</NuGetAuditMode>
+    <NuGetAuditLevel>low</NuGetAuditLevel>
+    <!-- Low (NU1901) and moderate (NU1902) advisories stay warnings; high (NU1903) and critical (NU1904) fail the build. -->
+    <WarningsNotAsErrors>$(WarningsNotAsErrors);NU1901;NU1902</WarningsNotAsErrors>
+  </PropertyGroup>
+
+  <PropertyGroup Label="Packaging">
+    <Authors>Noah Davis</Authors>
+    <Copyright>Copyright (c) 2026 Noah Davis and Srt.NET contributors</Copyright>
+    <PackageProjectUrl>https://github.com/notley-technologies/Srt.NET</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/notley-technologies/Srt.NET</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(GITHUB_ACTIONS)' == 'true'">
+    <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
+  </PropertyGroup>
+</Project>

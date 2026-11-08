@@ -1,0 +1,16 @@
+{
+  "openssl" : 
+  {
+    "archive" : "https://github.com/openssl/openssl/releases/download/openssl-3.5.9/openssl-3.5.9.tar.gz",
+    "repository" : "https://github.com/openssl/openssl.git",
+    "sha256" : "603f5602e2eef00d77fbd429d34dcd5822bb301757a1bc9cdb24c670f1eb859a",
+    "signingKey" : "B146647E45A7B33947AB226B2A2C87D161692D40",
+    "version" : "3.5.9"
+  },
+  "srt" : 
+  {
+    "commit" : "899348d8318eb9a3c5a5b6ec43c4a1114288773a",
+    "repository" : "https://github.com/Haivision/srt.git",
+    "version" : "1.5.7"
+  }
+}

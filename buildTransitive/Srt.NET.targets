@@ -1,0 +1,53 @@
+<!--
+  This Source Code Form is subject to the terms of the Mozilla Public
+  License, v. 2.0. If a copy of the MPL was not distributed with this
+  file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
+  Copyright (c) 2026 Noah Davis
+-->
+<Project>
+  <ItemGroup>
+    <Content Include="$(MSBuildThisFileDirectory)../licenses/**/*">
+      <Link>licenses/Srt.NET/%(RecursiveDir)%(Filename)%(Extension)</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+      <Visible>false</Visible>
+    </Content>
+    <Content Include="$(MSBuildThisFileDirectory)../THIRD_PARTY_NOTICES.md">
+      <Link>licenses/Srt.NET/THIRD_PARTY_NOTICES.md</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+      <Visible>false</Visible>
+    </Content>
+  </ItemGroup>
+  <ItemGroup Condition="'$(TargetFrameworkIdentifier)' == '.NETFramework'">
+    <Content Include="$(MSBuildThisFileDirectory)../runtimes/win-x64/native/srt.dll">
+      <Link>srt.dll</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+      <Visible>false</Visible>
+    </Content>
+  </ItemGroup>
+  <!--
+    The only Windows native library is x64, so a .NET Framework process must run as x64. The check runs after the SDK
+    has settled PlatformTarget: an SDK-style .NET Framework executable without a platform starts as x86 (an inferred
+    win-x86 runtime identifier), and AdjustDefaultPlatformTargetForNetFrameworkExeWithNoNativeCopyLocalItems then
+    usually changes it to AnyCPU. Prefer32Bit and PreferNativeArm64 affect only executables, making AnyCPU run as x86 or,
+    on Windows Arm64, as Arm64. Without them, AnyCPU runs as x64, under emulation on Windows Arm64.
+  -->
+  <Target Name="CheckSrtFrameworkArchitecture"
+          AfterTargets="AdjustDefaultPlatformTargetForNetFrameworkExeWithNoNativeCopyLocalItems"
+          BeforeTargets="CoreCompile"
+          Condition="'$(TargetFrameworkIdentifier)' == '.NETFramework'">
+    <PropertyGroup>
+      <_SrtIsExecutable>false</_SrtIsExecutable>
+      <_SrtIsExecutable Condition="'$(OutputType)' == 'Exe' Or '$(OutputType)' == 'WinExe' Or '$(OutputType)' == 'AppContainerExe'">true</_SrtIsExecutable>
+      <_SrtIsAnyCpu>false</_SrtIsAnyCpu>
+      <_SrtIsAnyCpu Condition="'$(PlatformTarget)' == '' Or '$(PlatformTarget)' == 'AnyCPU'">true</_SrtIsAnyCpu>
+    </PropertyGroup>
+    <Error Condition="'$(PlatformTarget)' == 'x86'" Text="Srt.NET includes only an x64 Windows native library, and this project builds for x86. Set &lt;PlatformTarget&gt;x64&lt;/PlatformTarget&gt; (or &lt;RuntimeIdentifier&gt;win-x64&lt;/RuntimeIdentifier&gt;)." />
+    <Error Condition="'$(PlatformTarget)' == 'ARM64' Or '$(PlatformTarget)' == 'ARM'" Text="Srt.NET includes only an x64 Windows native library, and this project builds for $(PlatformTarget). Set &lt;PlatformTarget&gt;x64&lt;/PlatformTarget&gt;; on Windows Arm64, x64 processes run under emulation." />
+    <Error Condition="'$(_SrtIsExecutable)' == 'true' And '$(_SrtIsAnyCpu)' == 'true' And '$(Prefer32Bit)' == 'true'" Text="Srt.NET includes only an x64 Windows native library, and this AnyCPU executable prefers 32-bit. Set &lt;Prefer32Bit&gt;false&lt;/Prefer32Bit&gt; or &lt;PlatformTarget&gt;x64&lt;/PlatformTarget&gt;." />
+    <Error Condition="'$(_SrtIsExecutable)' == 'true' And '$(_SrtIsAnyCpu)' == 'true' And '$(PreferNativeArm64)' == 'true'" Text="Srt.NET includes only an x64 Windows native library, and this AnyCPU executable runs as Arm64 on Windows Arm64. Remove PreferNativeArm64 or set &lt;PlatformTarget&gt;x64&lt;/PlatformTarget&gt;." />
+  </Target>
+</Project>

@@ -1,0 +1,14 @@
+<!--
+  This Source Code Form is subject to the terms of the Mozilla Public
+  License, v. 2.0. If a copy of the MPL was not distributed with this
+  file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
+  Copyright (c) 2026 Noah Davis
+-->
+<Project>
+  <!-- build/NativeRuntime.props (imported by Directory.Build.props) selects and copies the native library. -->
+  <Target Name="CheckExampleNativeLibrary" BeforeTargets="CopyFilesToOutputDirectory">
+    <Error Condition="'$(NativeRuntimeSupported)' != 'true'" Text="The examples do not include a native library for $(NativeRuntimeIdentifier). See examples/README.md for supported platforms." />
+    <Error Condition="!Exists('$(NativeLibraryDirectory)$(NativeLibraryName)')" Text="Build libsrt for $(NativeRuntimeIdentifier) before running the examples. See examples/README.md. Expected: $(NativeLibraryDirectory)$(NativeLibraryName)" />
+  </Target>
+</Project>

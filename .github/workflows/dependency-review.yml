@@ -1,0 +1,35 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at https://mozilla.org/MPL/2.0/.
+#
+# Copyright (c) 2026 Noah Davis
+
+name: Dependency review
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  dependency-review:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      # NuGet versions live in Directory.Packages.props, so the full graph comes from automatic dependency
+      # submission (repository setting); the retry waits for that snapshot. libsrt and OpenSSL are not
+      # package-manager dependencies and are tracked by native-updates.yml instead.
+      - uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
+        with:
+          fail-on-severity: moderate
+          retry-on-snapshot-warnings: true
+          show-openssf-scorecard: true
+          warn-on-openssf-scorecard-level: 3
+          allow-licenses: MIT, Apache-2.0, BSD-2-Clause, BSD-3-Clause, ISC, 0BSD, MPL-2.0
+          # Test-only coverage collector under Microsoft's free-to-use license; it is never redistributed.
+          allow-dependencies-licenses: pkg:nuget/Microsoft.Testing.Extensions.CodeCoverage

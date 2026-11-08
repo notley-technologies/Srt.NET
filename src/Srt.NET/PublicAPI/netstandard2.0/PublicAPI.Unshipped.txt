@@ -1,0 +1,430 @@
+#nullable enable
+override Srt.Net.SrtOption<T>.ToString() -> string!
+override Srt.Net.SrtStream.CanRead.get -> bool
+override Srt.Net.SrtStream.CanSeek.get -> bool
+override Srt.Net.SrtStream.CanTimeout.get -> bool
+override Srt.Net.SrtStream.CanWrite.get -> bool
+override Srt.Net.SrtStream.Flush() -> void
+override Srt.Net.SrtStream.FlushAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
+override Srt.Net.SrtStream.Length.get -> long
+override Srt.Net.SrtStream.Position.get -> long
+override Srt.Net.SrtStream.Position.set -> void
+override Srt.Net.SrtStream.Read(byte[]! buffer, int offset, int count) -> int
+override Srt.Net.SrtStream.ReadAsync(byte[]! buffer, int offset, int count, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<int>!
+override Srt.Net.SrtStream.ReadTimeout.get -> int
+override Srt.Net.SrtStream.ReadTimeout.set -> void
+override Srt.Net.SrtStream.Seek(long offset, System.IO.SeekOrigin origin) -> long
+override Srt.Net.SrtStream.SetLength(long value) -> void
+override Srt.Net.SrtStream.Write(byte[]! buffer, int offset, int count) -> void
+override Srt.Net.SrtStream.WriteAsync(byte[]! buffer, int offset, int count, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
+override Srt.Net.SrtStream.WriteTimeout.get -> int
+override Srt.Net.SrtStream.WriteTimeout.set -> void
+Srt.Net.SrtClock
+Srt.Net.SrtConnectionRequest
+Srt.Net.SrtConnectionRequest.GetOption<T>(Srt.Net.SrtOption<T>! option) -> T
+Srt.Net.SrtConnectionRequest.HandshakeVersion.get -> int
+Srt.Net.SrtConnectionRequest.RemoteEndPoint.get -> System.Net.IPEndPoint!
+Srt.Net.SrtConnectionRequest.SetOption<T>(Srt.Net.SrtOption<T>! option, T value) -> void
+Srt.Net.SrtConnectionRequest.SetRejectionReason(Srt.Net.SrtRejectReason reason) -> void
+Srt.Net.SrtConnectionRequest.StreamId.get -> string!
+Srt.Net.SrtErrorCode
+Srt.Net.SrtErrorCode.AlreadyBound = 5001 -> Srt.Net.SrtErrorCode
+Srt.Net.SrtErrorCode.AlreadyConnected = 5002 -> Srt.Net.SrtErrorCode
+Srt.Net.SrtErrorCode.BindConflict = 5015 -> Srt.Net.SrtErrorCode
+Srt.Net.SrtErrorCode.Congestion = 6004 -> Srt.Net.SrtErrorCode
+Srt.Net.SrtErrorCode.ConnectionFailed = 2000 -> Srt.Net.SrtErrorCode
+Srt.Net.SrtErrorCode.ConnectionLost = 2001 -> Srt.Net.SrtErrorCode
+Srt.Net.SrtErrorCode.ConnectionRejected = 1002 -> Srt.Net.SrtErrorCode
+Srt.Net.SrtErrorCode.ConnectionSetupFailed = 1000 -> Srt.Net.SrtErrorCode
+Srt.Net.SrtErrorCode.DuplicateListener = 5011 -> Srt.Net.SrtErrorCode
+Srt.Net.SrtErrorCode.FileFailed = 4000 -> Srt.Net.SrtErrorCode
+Srt.Net.SrtErrorCode.InvalidBufferApi = 5010 -> Srt.Net.SrtErrorCode
+Srt.Net.SrtErrorCode.InvalidMessageApi = 5009 -> Srt.Net.SrtErrorCode
+Srt.Net.SrtErrorCode.InvalidOperation = 5000 -> Srt.Net.SrtErrorCode
+Srt.Net.SrtErrorCode.InvalidParameter = 5003 -> Srt.Net.SrtErrorCode
+Srt.Net.SrtErrorCode.InvalidPollId = 5013 -> Srt.Net.SrtErrorCode
+Srt.Net.SrtErrorCode.InvalidReadOffset = 4001 -> Srt.Net.SrtErrorCode
+Srt.Net.SrtErrorCode.InvalidSocket = 5004 -> Srt.Net.SrtErrorCode
+Srt.Net.SrtErrorCode.InvalidWriteOffset = 4003 -> Srt.Net.SrtErrorCode
+Srt.Net.SrtErrorCode.MessageTooLarge = 5012 -> Srt.Net.SrtErrorCode
+Srt.Net.SrtErrorCode.NoBuffer = 3002 -> Srt.Net.SrtErrorCode
+Srt.Net.SrtErrorCode.NoServer = 1001 -> Srt.Net.SrtErrorCode
+Srt.Net.SrtErrorCode.NotBound = 5005 -> Srt.Net.SrtErrorCode
+Srt.Net.SrtErrorCode.NotConnected = 2002 -> Srt.Net.SrtErrorCode
+Srt.Net.SrtErrorCode.NotListening = 5006 -> Srt.Net.SrtErrorCode
+Srt.Net.SrtErrorCode.PeerError = 7000 -> Srt.Net.SrtErrorCode
+Srt.Net.SrtErrorCode.PollEmpty = 5014 -> Srt.Net.SrtErrorCode
+Srt.Net.SrtErrorCode.ReadPermissionDenied = 4002 -> Srt.Net.SrtErrorCode
+Srt.Net.SrtErrorCode.ReceiveWouldBlock = 6002 -> Srt.Net.SrtErrorCode
+Srt.Net.SrtErrorCode.RendezvousNoServer = 5007 -> Srt.Net.SrtErrorCode
+Srt.Net.SrtErrorCode.RendezvousUnbound = 5008 -> Srt.Net.SrtErrorCode
+Srt.Net.SrtErrorCode.ResourceFailed = 3000 -> Srt.Net.SrtErrorCode
+Srt.Net.SrtErrorCode.SecurityFailed = 1004 -> Srt.Net.SrtErrorCode
+Srt.Net.SrtErrorCode.SendWouldBlock = 6001 -> Srt.Net.SrtErrorCode
+Srt.Net.SrtErrorCode.SocketClosed = 1005 -> Srt.Net.SrtErrorCode
+Srt.Net.SrtErrorCode.SocketFailed = 1003 -> Srt.Net.SrtErrorCode
+Srt.Net.SrtErrorCode.Success = 0 -> Srt.Net.SrtErrorCode
+Srt.Net.SrtErrorCode.SystemObjectFailed = 3003 -> Srt.Net.SrtErrorCode
+Srt.Net.SrtErrorCode.ThreadFailed = 3001 -> Srt.Net.SrtErrorCode
+Srt.Net.SrtErrorCode.TimedOut = 6003 -> Srt.Net.SrtErrorCode
+Srt.Net.SrtErrorCode.Unknown = -1 -> Srt.Net.SrtErrorCode
+Srt.Net.SrtErrorCode.WouldBlock = 6000 -> Srt.Net.SrtErrorCode
+Srt.Net.SrtErrorCode.WritePermissionDenied = 4004 -> Srt.Net.SrtErrorCode
+Srt.Net.SrtErrors
+Srt.Net.SrtException
+Srt.Net.SrtException.RejectionReason.get -> Srt.Net.SrtRejectReason?
+Srt.Net.SrtException.SrtErrorCode.get -> Srt.Net.SrtErrorCode
+Srt.Net.SrtException.SystemErrorCode.get -> int
+Srt.Net.SrtKeyMaterialState
+Srt.Net.SrtKeyMaterialState.BadCryptoMode = 5 -> Srt.Net.SrtKeyMaterialState
+Srt.Net.SrtKeyMaterialState.BadSecret = 4 -> Srt.Net.SrtKeyMaterialState
+Srt.Net.SrtKeyMaterialState.NoSecret = 3 -> Srt.Net.SrtKeyMaterialState
+Srt.Net.SrtKeyMaterialState.Secured = 2 -> Srt.Net.SrtKeyMaterialState
+Srt.Net.SrtKeyMaterialState.Securing = 1 -> Srt.Net.SrtKeyMaterialState
+Srt.Net.SrtKeyMaterialState.Unsecured = 0 -> Srt.Net.SrtKeyMaterialState
+Srt.Net.SrtLinger
+Srt.Net.SrtLinger.Enabled.get -> bool
+Srt.Net.SrtLinger.Seconds.get -> int
+Srt.Net.SrtLinger.SrtLinger() -> void
+Srt.Net.SrtLinger.SrtLinger(bool enabled, int seconds) -> void
+Srt.Net.SrtLogArea
+Srt.Net.SrtLogArea.Application = 10 -> Srt.Net.SrtLogArea
+Srt.Net.SrtLogArea.ChannelManagement = 44 -> Srt.Net.SrtLogArea
+Srt.Net.SrtLogArea.Congestion = 7 -> Srt.Net.SrtLogArea
+Srt.Net.SrtLogArea.Connection = 2 -> Srt.Net.SrtLogArea
+Srt.Net.SrtLogArea.ControlApi = 11 -> Srt.Net.SrtLogArea
+Srt.Net.SrtLogArea.ControlQueue = 13 -> Srt.Net.SrtLogArea
+Srt.Net.SrtLogArea.Encryption = 6 -> Srt.Net.SrtLogArea
+Srt.Net.SrtLogArea.General = 0 -> Srt.Net.SrtLogArea
+Srt.Net.SrtLogArea.GroupManagement = 45 -> Srt.Net.SrtLogArea
+Srt.Net.SrtLogArea.Internal = 41 -> Srt.Net.SrtLogArea
+Srt.Net.SrtLogArea.PacketFilter = 8 -> Srt.Net.SrtLogArea
+Srt.Net.SrtLogArea.PollApi = 46 -> Srt.Net.SrtLogArea
+Srt.Net.SrtLogArea.PollUpdates = 16 -> Srt.Net.SrtLogArea
+Srt.Net.SrtLogArea.QueueManagement = 43 -> Srt.Net.SrtLogArea
+Srt.Net.SrtLogArea.ReceiveApi = 21 -> Srt.Net.SrtLogArea
+Srt.Net.SrtLogArea.ReceiveBuffer = 22 -> Srt.Net.SrtLogArea
+Srt.Net.SrtLogArea.ReceiveChannel = 24 -> Srt.Net.SrtLogArea
+Srt.Net.SrtLogArea.ReceiveGroup = 25 -> Srt.Net.SrtLogArea
+Srt.Net.SrtLogArea.ReceiveQueue = 23 -> Srt.Net.SrtLogArea
+Srt.Net.SrtLogArea.Resources = 5 -> Srt.Net.SrtLogArea
+Srt.Net.SrtLogArea.SendApi = 31 -> Srt.Net.SrtLogArea
+Srt.Net.SrtLogArea.SendBuffer = 32 -> Srt.Net.SrtLogArea
+Srt.Net.SrtLogArea.SendChannel = 34 -> Srt.Net.SrtLogArea
+Srt.Net.SrtLogArea.SendGroup = 35 -> Srt.Net.SrtLogArea
+Srt.Net.SrtLogArea.SendQueue = 33 -> Srt.Net.SrtLogArea
+Srt.Net.SrtLogArea.SocketManagement = 1 -> Srt.Net.SrtLogArea
+Srt.Net.SrtLogArea.Timers = 3 -> Srt.Net.SrtLogArea
+Srt.Net.SrtLogArea.TimestampDelivery = 4 -> Srt.Net.SrtLogArea
+Srt.Net.SrtLogEntry
+Srt.Net.SrtLogEntry.Area.get -> string!
+Srt.Net.SrtLogEntry.File.get -> string!
+Srt.Net.SrtLogEntry.Level.get -> Srt.Net.SrtLogLevel
+Srt.Net.SrtLogEntry.Line.get -> int
+Srt.Net.SrtLogEntry.Message.get -> string!
+Srt.Net.SrtLogFormat
+Srt.Net.SrtLogFormat.Default = 0 -> Srt.Net.SrtLogFormat
+Srt.Net.SrtLogFormat.OmitNewline = 8 -> Srt.Net.SrtLogFormat
+Srt.Net.SrtLogFormat.OmitSeverity = 4 -> Srt.Net.SrtLogFormat
+Srt.Net.SrtLogFormat.OmitThreadName = 2 -> Srt.Net.SrtLogFormat
+Srt.Net.SrtLogFormat.OmitTime = 1 -> Srt.Net.SrtLogFormat
+Srt.Net.SrtLogging
+Srt.Net.SrtLogLevel
+Srt.Net.SrtLogLevel.Debug = 7 -> Srt.Net.SrtLogLevel
+Srt.Net.SrtLogLevel.Error = 3 -> Srt.Net.SrtLogLevel
+Srt.Net.SrtLogLevel.Fatal = 2 -> Srt.Net.SrtLogLevel
+Srt.Net.SrtLogLevel.Information = 6 -> Srt.Net.SrtLogLevel
+Srt.Net.SrtLogLevel.Notice = 5 -> Srt.Net.SrtLogLevel
+Srt.Net.SrtLogLevel.Off = 0 -> Srt.Net.SrtLogLevel
+Srt.Net.SrtLogLevel.Warning = 4 -> Srt.Net.SrtLogLevel
+Srt.Net.SrtMessageOptions
+Srt.Net.SrtMessageOptions.InOrder.get -> bool
+Srt.Net.SrtMessageOptions.InOrder.init -> void
+Srt.Net.SrtMessageOptions.SourceTimeMicroseconds.get -> long
+Srt.Net.SrtMessageOptions.SourceTimeMicroseconds.init -> void
+Srt.Net.SrtMessageOptions.SrtMessageOptions() -> void
+Srt.Net.SrtMessageOptions.TimeToLive.get -> System.TimeSpan?
+Srt.Net.SrtMessageOptions.TimeToLive.init -> void
+Srt.Net.SrtMessageResult
+Srt.Net.SrtMessageResult.BytesTransferred.get -> int
+Srt.Net.SrtMessageResult.MessageNumber.get -> int
+Srt.Net.SrtMessageResult.PacketSequenceNumber.get -> int
+Srt.Net.SrtMessageResult.SourceTimeMicroseconds.get -> long
+Srt.Net.SrtMessageResult.SrtMessageResult() -> void
+Srt.Net.SrtOption<T>
+Srt.Net.SrtOption<T>.Name.get -> string!
+Srt.Net.SrtOptions
+Srt.Net.SrtPoller
+Srt.Net.SrtPoller.Add(Srt.Net.SrtSocket! socket, Srt.Net.SrtPollEvents events) -> void
+Srt.Net.SrtPoller.Dispose() -> void
+Srt.Net.SrtPoller.Remove(Srt.Net.SrtSocket! socket) -> void
+Srt.Net.SrtPoller.SrtPoller() -> void
+Srt.Net.SrtPoller.Update(Srt.Net.SrtSocket! socket, Srt.Net.SrtPollEvents events) -> void
+Srt.Net.SrtPoller.Wait(System.Span<Srt.Net.SrtPollEvent> destination, System.TimeSpan? timeout = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> int
+Srt.Net.SrtPoller.Wait(System.TimeSpan? timeout = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> Srt.Net.SrtPollEvent[]!
+Srt.Net.SrtPollEvent
+Srt.Net.SrtPollEvent.Events.get -> Srt.Net.SrtPollEvents
+Srt.Net.SrtPollEvent.Socket.get -> Srt.Net.SrtSocket!
+Srt.Net.SrtPollEvent.SrtPollEvent() -> void
+Srt.Net.SrtPollEvents
+Srt.Net.SrtPollEvents.Accept = 1 -> Srt.Net.SrtPollEvents
+Srt.Net.SrtPollEvents.Closed = 256 -> Srt.Net.SrtPollEvents
+Srt.Net.SrtPollEvents.Connect = 4 -> Srt.Net.SrtPollEvents
+Srt.Net.SrtPollEvents.Error = 8 -> Srt.Net.SrtPollEvents
+Srt.Net.SrtPollEvents.None = 0 -> Srt.Net.SrtPollEvents
+Srt.Net.SrtPollEvents.Read = 1 -> Srt.Net.SrtPollEvents
+Srt.Net.SrtPollEvents.Write = 4 -> Srt.Net.SrtPollEvents
+Srt.Net.SrtRejectReason
+Srt.Net.SrtRejectReason.Backlog = 5 -> Srt.Net.SrtRejectReason
+Srt.Net.SrtRejectReason.BadMode = 1405 -> Srt.Net.SrtRejectReason
+Srt.Net.SrtRejectReason.BadRequest = 1400 -> Srt.Net.SrtRejectReason
+Srt.Net.SrtRejectReason.BadSecret = 10 -> Srt.Net.SrtRejectReason
+Srt.Net.SrtRejectReason.Closing = 7 -> Srt.Net.SrtRejectReason
+Srt.Net.SrtRejectReason.Conflict = 1409 -> Srt.Net.SrtRejectReason
+Srt.Net.SrtRejectReason.Congestion = 13 -> Srt.Net.SrtRejectReason
+Srt.Net.SrtRejectReason.Crypto = 17 -> Srt.Net.SrtRejectReason
+Srt.Net.SrtRejectReason.FailedDependency = 1424 -> Srt.Net.SrtRejectReason
+Srt.Net.SrtRejectReason.Fallback = 1000 -> Srt.Net.SrtRejectReason
+Srt.Net.SrtRejectReason.FilePath = 1002 -> Srt.Net.SrtRejectReason
+Srt.Net.SrtRejectReason.Filter = 14 -> Srt.Net.SrtRejectReason
+Srt.Net.SrtRejectReason.Forbidden = 1403 -> Srt.Net.SrtRejectReason
+Srt.Net.SrtRejectReason.Gateway = 1502 -> Srt.Net.SrtRejectReason
+Srt.Net.SrtRejectReason.Group = 15 -> Srt.Net.SrtRejectReason
+Srt.Net.SrtRejectReason.HostNotFound = 1003 -> Srt.Net.SrtRejectReason
+Srt.Net.SrtRejectReason.InternalError = 6 -> Srt.Net.SrtRejectReason
+Srt.Net.SrtRejectReason.InternalServerError = 1500 -> Srt.Net.SrtRejectReason
+Srt.Net.SrtRejectReason.KeyNotSupported = 1001 -> Srt.Net.SrtRejectReason
+Srt.Net.SrtRejectReason.Locked = 1423 -> Srt.Net.SrtRejectReason
+Srt.Net.SrtRejectReason.MessageApi = 12 -> Srt.Net.SrtRejectReason
+Srt.Net.SrtRejectReason.NoRoom = 1507 -> Srt.Net.SrtRejectReason
+Srt.Net.SrtRejectReason.NotFound = 1404 -> Srt.Net.SrtRejectReason
+Srt.Net.SrtRejectReason.NotImplemented = 1501 -> Srt.Net.SrtRejectReason
+Srt.Net.SrtRejectReason.NotSupportedMedia = 1415 -> Srt.Net.SrtRejectReason
+Srt.Net.SrtRejectReason.Overload = 1402 -> Srt.Net.SrtRejectReason
+Srt.Net.SrtRejectReason.Peer = 2 -> Srt.Net.SrtRejectReason
+Srt.Net.SrtRejectReason.RendezvousCookie = 9 -> Srt.Net.SrtRejectReason
+Srt.Net.SrtRejectReason.Resource = 3 -> Srt.Net.SrtRejectReason
+Srt.Net.SrtRejectReason.Rogue = 4 -> Srt.Net.SrtRejectReason
+Srt.Net.SrtRejectReason.ServiceUnavailable = 1503 -> Srt.Net.SrtRejectReason
+Srt.Net.SrtRejectReason.System = 1 -> Srt.Net.SrtRejectReason
+Srt.Net.SrtRejectReason.Timeout = 16 -> Srt.Net.SrtRejectReason
+Srt.Net.SrtRejectReason.Unacceptable = 1406 -> Srt.Net.SrtRejectReason
+Srt.Net.SrtRejectReason.Unauthorized = 1401 -> Srt.Net.SrtRejectReason
+Srt.Net.SrtRejectReason.Unknown = 0 -> Srt.Net.SrtRejectReason
+Srt.Net.SrtRejectReason.Unsecure = 11 -> Srt.Net.SrtRejectReason
+Srt.Net.SrtRejectReason.UserDefined = 2000 -> Srt.Net.SrtRejectReason
+Srt.Net.SrtRejectReason.Version = 8 -> Srt.Net.SrtRejectReason
+Srt.Net.SrtRejectReason.VersionNotSupported = 1505 -> Srt.Net.SrtRejectReason
+Srt.Net.SrtSendBuffer
+Srt.Net.SrtSendBuffer.Blocks.get -> ulong
+Srt.Net.SrtSendBuffer.Bytes.get -> ulong
+Srt.Net.SrtSendBuffer.SrtSendBuffer() -> void
+Srt.Net.SrtSocket
+Srt.Net.SrtSocket.Accept(System.TimeSpan? timeout = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> Srt.Net.SrtSocket!
+Srt.Net.SrtSocket.AcceptAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<Srt.Net.SrtSocket!>
+Srt.Net.SrtSocket.BeginConnect(System.Net.IPEndPoint! endpoint) -> void
+Srt.Net.SrtSocket.Bind(System.Net.IPEndPoint! endpoint) -> void
+Srt.Net.SrtSocket.CompleteConnect() -> void
+Srt.Net.SrtSocket.Connect(System.Net.IPEndPoint! endpoint, System.TimeSpan? timeout = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> void
+Srt.Net.SrtSocket.ConnectAsync(System.Net.IPEndPoint! endpoint, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask
+Srt.Net.SrtSocket.ConnectionTimeMicroseconds.get -> long
+Srt.Net.SrtSocket.Dispose() -> void
+Srt.Net.SrtSocket.GetOption<T>(Srt.Net.SrtOption<T>! option) -> T
+Srt.Net.SrtSocket.GetSendBuffer() -> Srt.Net.SrtSendBuffer
+Srt.Net.SrtSocket.GetStatistics(bool clear = false, bool instantaneous = false) -> Srt.Net.SrtStatistics!
+Srt.Net.SrtSocket.LastAdmissionException.get -> System.Exception?
+Srt.Net.SrtSocket.Listen(int backlog = 16) -> void
+Srt.Net.SrtSocket.LocalEndPoint.get -> System.Net.IPEndPoint!
+Srt.Net.SrtSocket.Receive(byte[]! buffer, int offset, int count, System.TimeSpan? timeout = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> int
+Srt.Net.SrtSocket.Receive(byte[]! buffer, System.TimeSpan? timeout = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> int
+Srt.Net.SrtSocket.Receive(System.Span<byte> buffer, System.TimeSpan? timeout = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> int
+Srt.Net.SrtSocket.ReceiveAsync(System.Memory<byte> buffer, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<int>
+Srt.Net.SrtSocket.ReceiveMessage(byte[]! buffer, int offset, int count, System.TimeSpan? timeout = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> Srt.Net.SrtMessageResult
+Srt.Net.SrtSocket.ReceiveMessage(byte[]! buffer, System.TimeSpan? timeout = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> Srt.Net.SrtMessageResult
+Srt.Net.SrtSocket.ReceiveMessage(System.Span<byte> buffer, System.TimeSpan? timeout = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> Srt.Net.SrtMessageResult
+Srt.Net.SrtSocket.ReceiveMessageAsync(System.Memory<byte> buffer, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<Srt.Net.SrtMessageResult>
+Srt.Net.SrtSocket.RemoteEndPoint.get -> System.Net.IPEndPoint!
+Srt.Net.SrtSocket.Send(byte[]! buffer, int offset, int count, System.TimeSpan? timeout = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> int
+Srt.Net.SrtSocket.Send(byte[]! buffer, System.TimeSpan? timeout = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> int
+Srt.Net.SrtSocket.Send(System.ReadOnlySpan<byte> buffer, System.TimeSpan? timeout = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> int
+Srt.Net.SrtSocket.SendAsync(System.ReadOnlyMemory<byte> buffer, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<int>
+Srt.Net.SrtSocket.SendMessage(byte[]! buffer, int offset, int count, Srt.Net.SrtMessageOptions options = default(Srt.Net.SrtMessageOptions), System.TimeSpan? timeout = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> Srt.Net.SrtMessageResult
+Srt.Net.SrtSocket.SendMessage(byte[]! buffer, Srt.Net.SrtMessageOptions options = default(Srt.Net.SrtMessageOptions), System.TimeSpan? timeout = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> Srt.Net.SrtMessageResult
+Srt.Net.SrtSocket.SendMessage(System.ReadOnlySpan<byte> buffer, Srt.Net.SrtMessageOptions options = default(Srt.Net.SrtMessageOptions), System.TimeSpan? timeout = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> Srt.Net.SrtMessageResult
+Srt.Net.SrtSocket.SendMessageAsync(System.ReadOnlyMemory<byte> buffer, Srt.Net.SrtMessageOptions options = default(Srt.Net.SrtMessageOptions), System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<Srt.Net.SrtMessageResult>
+Srt.Net.SrtSocket.SetConnectionHandler(System.Func<Srt.Net.SrtConnectionRequest!, bool>? handler) -> void
+Srt.Net.SrtSocket.SetOption<T>(Srt.Net.SrtOption<T>! option, T value) -> void
+Srt.Net.SrtSocket.SrtSocket() -> void
+Srt.Net.SrtSocket.State.get -> Srt.Net.SrtSocketState
+Srt.Net.SrtSocket.TryAccept(out Srt.Net.SrtSocket? connection) -> bool
+Srt.Net.SrtSocket.TryReceive(byte[]! buffer, int offset, int count, out int bytesReceived) -> bool
+Srt.Net.SrtSocket.TryReceive(byte[]! buffer, out int bytesReceived) -> bool
+Srt.Net.SrtSocket.TryReceive(System.Span<byte> buffer, out int bytesReceived) -> bool
+Srt.Net.SrtSocket.TryReceiveMessage(byte[]! buffer, int offset, int count, out Srt.Net.SrtMessageResult result) -> bool
+Srt.Net.SrtSocket.TryReceiveMessage(byte[]! buffer, out Srt.Net.SrtMessageResult result) -> bool
+Srt.Net.SrtSocket.TryReceiveMessage(System.Span<byte> buffer, out Srt.Net.SrtMessageResult result) -> bool
+Srt.Net.SrtSocket.TrySend(byte[]! buffer, int offset, int count, out int bytesSent) -> bool
+Srt.Net.SrtSocket.TrySend(byte[]! buffer, out int bytesSent) -> bool
+Srt.Net.SrtSocket.TrySend(System.ReadOnlySpan<byte> buffer, out int bytesSent) -> bool
+Srt.Net.SrtSocket.TrySendMessage(byte[]! buffer, int offset, int count, out Srt.Net.SrtMessageResult result, Srt.Net.SrtMessageOptions options = default(Srt.Net.SrtMessageOptions)) -> bool
+Srt.Net.SrtSocket.TrySendMessage(byte[]! buffer, out Srt.Net.SrtMessageResult result, Srt.Net.SrtMessageOptions options = default(Srt.Net.SrtMessageOptions)) -> bool
+Srt.Net.SrtSocket.TrySendMessage(System.ReadOnlySpan<byte> buffer, out Srt.Net.SrtMessageResult result, Srt.Net.SrtMessageOptions options = default(Srt.Net.SrtMessageOptions)) -> bool
+Srt.Net.SrtSocketState
+Srt.Net.SrtSocketState.Broken = 6 -> Srt.Net.SrtSocketState
+Srt.Net.SrtSocketState.Closed = 8 -> Srt.Net.SrtSocketState
+Srt.Net.SrtSocketState.Closing = 7 -> Srt.Net.SrtSocketState
+Srt.Net.SrtSocketState.Connected = 5 -> Srt.Net.SrtSocketState
+Srt.Net.SrtSocketState.Connecting = 4 -> Srt.Net.SrtSocketState
+Srt.Net.SrtSocketState.Initialized = 1 -> Srt.Net.SrtSocketState
+Srt.Net.SrtSocketState.Listening = 3 -> Srt.Net.SrtSocketState
+Srt.Net.SrtSocketState.Nonexistent = 9 -> Srt.Net.SrtSocketState
+Srt.Net.SrtSocketState.Opened = 2 -> Srt.Net.SrtSocketState
+Srt.Net.SrtStatistics
+Srt.Net.SrtStatistics.AverageLateArrivalMilliseconds.get -> double
+Srt.Net.SrtStatistics.BandwidthMegabitsPerSecond.get -> double
+Srt.Net.SrtStatistics.BytesAvailableReceivedBuffer.get -> int
+Srt.Net.SrtStatistics.BytesAvailableSendBuffer.get -> int
+Srt.Net.SrtStatistics.BytesReceived.get -> ulong
+Srt.Net.SrtStatistics.BytesReceivedBuffer.get -> int
+Srt.Net.SrtStatistics.BytesReceivedDrop.get -> ulong
+Srt.Net.SrtStatistics.BytesReceivedDropTotal.get -> ulong
+Srt.Net.SrtStatistics.BytesReceivedLoss.get -> ulong
+Srt.Net.SrtStatistics.BytesReceivedLossTotal.get -> ulong
+Srt.Net.SrtStatistics.BytesReceivedTotal.get -> ulong
+Srt.Net.SrtStatistics.BytesReceivedUndecrypted.get -> ulong
+Srt.Net.SrtStatistics.BytesReceivedUndecryptedTotal.get -> ulong
+Srt.Net.SrtStatistics.BytesReceivedUnique.get -> ulong
+Srt.Net.SrtStatistics.BytesReceivedUniqueTotal.get -> ulong
+Srt.Net.SrtStatistics.BytesRetransmitted.get -> ulong
+Srt.Net.SrtStatistics.BytesRetransmittedTotal.get -> ulong
+Srt.Net.SrtStatistics.BytesSendBuffer.get -> int
+Srt.Net.SrtStatistics.BytesSendDrop.get -> ulong
+Srt.Net.SrtStatistics.BytesSendDropTotal.get -> ulong
+Srt.Net.SrtStatistics.BytesSent.get -> ulong
+Srt.Net.SrtStatistics.BytesSentTotal.get -> ulong
+Srt.Net.SrtStatistics.BytesSentUnique.get -> ulong
+Srt.Net.SrtStatistics.BytesSentUniqueTotal.get -> ulong
+Srt.Net.SrtStatistics.MaximumBandwidthMegabitsPerSecond.get -> double
+Srt.Net.SrtStatistics.MaximumSegmentSizeBytes.get -> int
+Srt.Net.SrtStatistics.MicrosecondsSendDuration.get -> long
+Srt.Net.SrtStatistics.MicrosecondsSendDurationTotal.get -> long
+Srt.Net.SrtStatistics.MillisecondsReceivedBuffer.get -> int
+Srt.Net.SrtStatistics.MillisecondsReceivedDeliveryDelay.get -> int
+Srt.Net.SrtStatistics.MillisecondsSendBuffer.get -> int
+Srt.Net.SrtStatistics.MillisecondsSendDeliveryDelay.get -> int
+Srt.Net.SrtStatistics.PacketsCongestionWindow.get -> int
+Srt.Net.SrtStatistics.PacketsFlightSize.get -> int
+Srt.Net.SrtStatistics.PacketsFlowWindow.get -> int
+Srt.Net.SrtStatistics.PacketsReceived.get -> long
+Srt.Net.SrtStatistics.PacketsReceivedAck.get -> int
+Srt.Net.SrtStatistics.PacketsReceivedAckTotal.get -> int
+Srt.Net.SrtStatistics.PacketsReceivedBelated.get -> long
+Srt.Net.SrtStatistics.PacketsReceivedBuffer.get -> int
+Srt.Net.SrtStatistics.PacketsReceivedDrop.get -> int
+Srt.Net.SrtStatistics.PacketsReceivedDropTotal.get -> int
+Srt.Net.SrtStatistics.PacketsReceivedFilterExtra.get -> int
+Srt.Net.SrtStatistics.PacketsReceivedFilterExtraTotal.get -> int
+Srt.Net.SrtStatistics.PacketsReceivedFilterLoss.get -> int
+Srt.Net.SrtStatistics.PacketsReceivedFilterLossTotal.get -> int
+Srt.Net.SrtStatistics.PacketsReceivedFilterSupply.get -> int
+Srt.Net.SrtStatistics.PacketsReceivedFilterSupplyTotal.get -> int
+Srt.Net.SrtStatistics.PacketsReceivedLoss.get -> int
+Srt.Net.SrtStatistics.PacketsReceivedLossTotal.get -> int
+Srt.Net.SrtStatistics.PacketsReceivedNak.get -> int
+Srt.Net.SrtStatistics.PacketsReceivedNakTotal.get -> int
+Srt.Net.SrtStatistics.PacketsReceivedRetransmitted.get -> int
+Srt.Net.SrtStatistics.PacketsReceivedTotal.get -> long
+Srt.Net.SrtStatistics.PacketsReceivedUndecrypted.get -> int
+Srt.Net.SrtStatistics.PacketsReceivedUndecryptedTotal.get -> int
+Srt.Net.SrtStatistics.PacketsReceivedUnique.get -> long
+Srt.Net.SrtStatistics.PacketsReceivedUniqueTotal.get -> long
+Srt.Net.SrtStatistics.PacketsReorderDistance.get -> int
+Srt.Net.SrtStatistics.PacketsReorderTolerance.get -> int
+Srt.Net.SrtStatistics.PacketsRetransmitted.get -> int
+Srt.Net.SrtStatistics.PacketsRetransmittedTotal.get -> int
+Srt.Net.SrtStatistics.PacketsSendBuffer.get -> int
+Srt.Net.SrtStatistics.PacketsSendDrop.get -> int
+Srt.Net.SrtStatistics.PacketsSendDropTotal.get -> int
+Srt.Net.SrtStatistics.PacketsSendFilterExtra.get -> int
+Srt.Net.SrtStatistics.PacketsSendFilterExtraTotal.get -> int
+Srt.Net.SrtStatistics.PacketsSendLoss.get -> int
+Srt.Net.SrtStatistics.PacketsSendLossTotal.get -> int
+Srt.Net.SrtStatistics.PacketsSent.get -> long
+Srt.Net.SrtStatistics.PacketsSentAck.get -> int
+Srt.Net.SrtStatistics.PacketsSentAckTotal.get -> int
+Srt.Net.SrtStatistics.PacketsSentNak.get -> int
+Srt.Net.SrtStatistics.PacketsSentNakTotal.get -> int
+Srt.Net.SrtStatistics.PacketsSentTotal.get -> long
+Srt.Net.SrtStatistics.PacketsSentUnique.get -> long
+Srt.Net.SrtStatistics.PacketsSentUniqueTotal.get -> long
+Srt.Net.SrtStatistics.ReceiveRateMegabitsPerSecond.get -> double
+Srt.Net.SrtStatistics.RoundTripTimeMilliseconds.get -> double
+Srt.Net.SrtStatistics.SendPeriodMicroseconds.get -> double
+Srt.Net.SrtStatistics.SendRateMegabitsPerSecond.get -> double
+Srt.Net.SrtStatistics.TimestampMilliseconds.get -> long
+Srt.Net.SrtStream
+Srt.Net.SrtStream.Socket.get -> Srt.Net.SrtSocket!
+Srt.Net.SrtStream.SrtStream(Srt.Net.SrtSocket! socket, bool ownsSocket = false) -> void
+Srt.Net.SrtTransmissionType
+Srt.Net.SrtTransmissionType.File = 1 -> Srt.Net.SrtTransmissionType
+Srt.Net.SrtTransmissionType.Live = 0 -> Srt.Net.SrtTransmissionType
+static Srt.Net.SrtClock.NowMicroseconds.get -> long
+static Srt.Net.SrtErrors.Describe(Srt.Net.SrtErrorCode errorCode) -> string!
+static Srt.Net.SrtErrors.DescribeRejection(Srt.Net.SrtRejectReason reason) -> string!
+static Srt.Net.SrtLogging.DisableArea(Srt.Net.SrtLogArea area) -> void
+static Srt.Net.SrtLogging.DroppedMessages.get -> long
+static Srt.Net.SrtLogging.EnableArea(Srt.Net.SrtLogArea area) -> void
+static Srt.Net.SrtLogging.LastHandlerException.get -> System.Exception?
+static Srt.Net.SrtLogging.SetAreas(params Srt.Net.SrtLogArea[]! areas) -> void
+static Srt.Net.SrtLogging.SetFormat(Srt.Net.SrtLogFormat format) -> void
+static Srt.Net.SrtLogging.SetHandler(System.Action<Srt.Net.SrtLogEntry!>? value) -> void
+static Srt.Net.SrtLogging.SetLevel(Srt.Net.SrtLogLevel level) -> void
+static Srt.Net.SrtOptions.AvailableEvents.get -> Srt.Net.SrtOption<int>!
+static Srt.Net.SrtOptions.BindToDevice.get -> Srt.Net.SrtOption<string!>!
+static Srt.Net.SrtOptions.CongestionController.get -> Srt.Net.SrtOption<string!>!
+static Srt.Net.SrtOptions.ConnectTimeout.get -> Srt.Net.SrtOption<int>!
+static Srt.Net.SrtOptions.DriftTracer.get -> Srt.Net.SrtOption<bool>!
+static Srt.Net.SrtOptions.EncryptionKeySize.get -> Srt.Net.SrtOption<int>!
+static Srt.Net.SrtOptions.EnforcedEncryption.get -> Srt.Net.SrtOption<bool>!
+static Srt.Net.SrtOptions.FlowControlWindow.get -> Srt.Net.SrtOption<int>!
+static Srt.Net.SrtOptions.InitialSequenceNumber.get -> Srt.Net.SrtOption<int>!
+static Srt.Net.SrtOptions.InputBandwidth.get -> Srt.Net.SrtOption<long>!
+static Srt.Net.SrtOptions.IpTimeToLive.get -> Srt.Net.SrtOption<int>!
+static Srt.Net.SrtOptions.IpTypeOfService.get -> Srt.Net.SrtOption<int>!
+static Srt.Net.SrtOptions.IPv6Only.get -> Srt.Net.SrtOption<int>!
+static Srt.Net.SrtOptions.KeyPreannounce.get -> Srt.Net.SrtOption<int>!
+static Srt.Net.SrtOptions.KeyRefreshRate.get -> Srt.Net.SrtOption<int>!
+static Srt.Net.SrtOptions.Linger.get -> Srt.Net.SrtOption<Srt.Net.SrtLinger>!
+static Srt.Net.SrtOptions.MaximumBandwidth.get -> Srt.Net.SrtOption<long>!
+static Srt.Net.SrtOptions.MaximumReorderTolerance.get -> Srt.Net.SrtOption<int>!
+static Srt.Net.SrtOptions.MaximumSegmentSize.get -> Srt.Net.SrtOption<int>!
+static Srt.Net.SrtOptions.MessageApi.get -> Srt.Net.SrtOption<bool>!
+static Srt.Net.SrtOptions.MinimumInputBandwidth.get -> Srt.Net.SrtOption<long>!
+static Srt.Net.SrtOptions.MinimumPeerVersion.get -> Srt.Net.SrtOption<int>!
+static Srt.Net.SrtOptions.NegativeAcknowledgmentReports.get -> Srt.Net.SrtOption<bool>!
+static Srt.Net.SrtOptions.OverheadBandwidth.get -> Srt.Net.SrtOption<int>!
+static Srt.Net.SrtOptions.PacketFilter.get -> Srt.Net.SrtOption<string!>!
+static Srt.Net.SrtOptions.Passphrase.get -> Srt.Net.SrtOption<string!>!
+static Srt.Net.SrtOptions.PayloadSize.get -> Srt.Net.SrtOption<int>!
+static Srt.Net.SrtOptions.PeerIdleTimeout.get -> Srt.Net.SrtOption<int>!
+static Srt.Net.SrtOptions.PeerLatency.get -> Srt.Net.SrtOption<int>!
+static Srt.Net.SrtOptions.PeerVersion.get -> Srt.Net.SrtOption<int>!
+static Srt.Net.SrtOptions.PendingReceivePackets.get -> Srt.Net.SrtOption<int>!
+static Srt.Net.SrtOptions.PendingSendPackets.get -> Srt.Net.SrtOption<int>!
+static Srt.Net.SrtOptions.ReceiveBufferSize.get -> Srt.Net.SrtOption<int>!
+static Srt.Net.SrtOptions.ReceiveEncryptionState.get -> Srt.Net.SrtOption<Srt.Net.SrtKeyMaterialState>!
+static Srt.Net.SrtOptions.ReceiveLatency.get -> Srt.Net.SrtOption<int>!
+static Srt.Net.SrtOptions.Rendezvous.get -> Srt.Net.SrtOption<bool>!
+static Srt.Net.SrtOptions.RetransmissionAlgorithm.get -> Srt.Net.SrtOption<int>!
+static Srt.Net.SrtOptions.ReuseAddress.get -> Srt.Net.SrtOption<bool>!
+static Srt.Net.SrtOptions.SendBufferSize.get -> Srt.Net.SrtOption<int>!
+static Srt.Net.SrtOptions.SendDropDelay.get -> Srt.Net.SrtOption<int>!
+static Srt.Net.SrtOptions.SendEncryptionState.get -> Srt.Net.SrtOption<Srt.Net.SrtKeyMaterialState>!
+static Srt.Net.SrtOptions.StreamId.get -> Srt.Net.SrtOption<string!>!
+static Srt.Net.SrtOptions.TimestampBasedDelivery.get -> Srt.Net.SrtOption<bool>!
+static Srt.Net.SrtOptions.TooLatePacketDrop.get -> Srt.Net.SrtOption<bool>!
+static Srt.Net.SrtOptions.TransmissionType.get -> Srt.Net.SrtOption<Srt.Net.SrtTransmissionType>!
+static Srt.Net.SrtOptions.UdpReceiveBufferSize.get -> Srt.Net.SrtOption<int>!
+static Srt.Net.SrtOptions.UdpSendBufferSize.get -> Srt.Net.SrtOption<int>!
+static Srt.Net.SrtSocket.NativeVersion.get -> System.Version!
+Srt.Net.SrtMessageOptions.SrtMessageOptions(System.TimeSpan? timeToLive, bool inOrder = false, long sourceTimeMicroseconds = 0) -> void

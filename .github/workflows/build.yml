@@ -1,0 +1,480 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at https://mozilla.org/MPL/2.0/.
+#
+# Copyright (c) 2026 Noah Davis
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  # Superseded pull request runs are canceled; main and tag runs always finish.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true # Also opts Microsoft.Testing.Platform out of telemetry.
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  lint:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      ACTIONLINT_IMAGE: rhysd/actionlint:1.7.12@sha256:b1934ee5f1c509618f2508e6eb47ee0d3520686341fec936f3b79331f9315667
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
+        with:
+          global-json-file: global.json
+
+      - name: Check formatting, code style, and public API files
+        run: dotnet format Srt.NET.slnx --verify-no-changes
+
+      - name: Lint workflows
+        run: docker run --rm --volume "$PWD:/repo" --workdir /repo "$ACTIONLINT_IMAGE" -color
+
+      # .prettierrc.json keeps each paragraph and list item on one line, so rendered Markdown has no stray breaks.
+      - name: Check Markdown formatting
+        run: npx --yes prettier@3.6.2 --check "**/*.md"
+
+  native:
+    name: build and test (${{ matrix.rid }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { rid: win-x64, os: windows-2022, library: srt.dll, build: windows, aot: true }
+          # Linux libraries are built in pinned manylinux_2_28 (glibc) and Alpine (musl) containers.
+          - { rid: linux-x64, os: ubuntu-24.04, library: libsrt.so, build: docker, aot: true }
+          - { rid: linux-arm64, os: ubuntu-24.04-arm, library: libsrt.so, build: docker, aot: true }
+          # musl tests, packing, and package tests (including Native AOT) run in an Alpine container.
+          - { rid: linux-musl-x64, os: ubuntu-24.04, library: libsrt.so, build: docker, aot: true, test-image: srtnet-test-musl }
+          - { rid: linux-musl-arm64, os: ubuntu-24.04-arm, library: libsrt.so, build: docker, aot: true, test-image: srtnet-test-musl }
+          - { rid: osx-x64, os: macos-15-intel, library: libsrt.dylib, build: cmake, aot: true }
+          - { rid: osx-arm64, os: macos-15, library: libsrt.dylib, build: cmake, aot: true }
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 120
+    env:
+      RID: ${{ matrix.rid }}
+      LIBRARY: ${{ matrix.library }}
+      # .github/scripts/test-env.sh runs commands in this image when it is set, otherwise on the runner.
+      SRTNET_TEST_IMAGE: ${{ matrix.test-image }}
+      # Extra CMake arguments for the native build scripts. They are part of the native cache key.
+      NATIVE_CMAKE_ARGS: -DSRTNET_TEST_OPENSSL=ON
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0 # MinVer derives the package version from tags.
+          persist-credentials: false
+
+      - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
+        with:
+          global-json-file: global.json
+          dotnet-version: 8.0.x
+
+      # Windows and macOS builds use the compiler of the runner image, so a new image version rebuilds them. The glibc
+      # compilers ship inside the digest-pinned manylinux images; the musl toolchain is installed from the Alpine
+      # repository when the image is built (see below).
+      - name: Identify the native toolchain
+        id: toolchain
+        if: github.ref_type != 'tag'
+        env:
+          BUILD: ${{ matrix.build }}
+        run: |
+          if [ "$BUILD" = docker ]; then
+            echo "image=container" >> "$GITHUB_OUTPUT"
+          else
+            echo "image=$ImageOS-$ImageVersion" >> "$GITHUB_OUTPUT"
+          fi
+
+      # The key covers the build scripts and pinned sources in native/ and the extra CMake arguments. The Linux build
+      # images are pinned by digest, but the Alpine image installs its toolchain packages when it is built, so a musl
+      # rebuild can use newer package revisions than the cached build (srt.build-info.json records them). Tag builds
+      # compile everything in this run, so release provenance never describes binaries restored from a cache.
+      - name: Restore native build
+        id: native-cache
+        if: github.ref_type != 'tag'
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            artifacts/runtimes/${{ matrix.rid }}
+            artifacts/licenses
+            artifacts/sbom/native-${{ matrix.rid }}.spdx.json
+          key: native-${{ matrix.rid }}-${{ matrix.os }}-${{ steps.toolchain.outputs.image }}-${{ hashFiles('native/**') }}-${{ env.NATIVE_CMAKE_ARGS }}
+
+      # The script also fails when the ELF gate fails (glibc 2.28 or older, no libstdc++, only srt_* exports).
+      - name: Build native libraries (Linux)
+        if: steps.native-cache.outputs.cache-hit != 'true' && matrix.build == 'docker'
+        run: |
+          # shellcheck disable=SC2086 # NATIVE_CMAKE_ARGS holds separate arguments.
+          bash native/docker/build-native.sh "$RID" $NATIVE_CMAKE_ARGS
+
+      - name: Build native libraries (macOS)
+        if: steps.native-cache.outputs.cache-hit != 'true' && matrix.build == 'cmake'
+        run: |
+          # shellcheck disable=SC2086 # NATIVE_CMAKE_ARGS holds separate arguments.
+          bash native/build-macos.sh "$RID" $NATIVE_CMAKE_ARGS
+
+      - name: Build native libraries (Windows)
+        if: steps.native-cache.outputs.cache-hit != 'true' && matrix.build == 'windows'
+        shell: cmd
+        run: call native\build-windows.cmd %NATIVE_CMAKE_ARGS%
+
+      - name: Check native outputs
+        run: |
+          for file in "artifacts/runtimes/$RID/native/$LIBRARY" "artifacts/runtimes/$RID/native/srt.build-info.json" \
+            "artifacts/sbom/native-$RID.spdx.json" artifacts/licenses/libsrt-MPL-2.0.txt artifacts/licenses/openssl-LICENSE.txt; do
+            [ -f "$file" ] || { echo "::error::Missing native output $file"; exit 1; }
+          done
+
+      - name: Prepare the musl test container
+        if: matrix.test-image
+        run: docker build --tag "$SRTNET_TEST_IMAGE" --file native/docker/test-musl.Dockerfile native/docker
+
+      # Test-platform options follow "--". Without --coverage-output, every test app (net8.0, net10.0, and net48 on
+      # Windows) writes its own coverage file. Coverage runs on win-x64, linux-x64, and osx-x64 only: the extension
+      # ships no arm64 instrumentation for Linux or macOS, and in the musl test container (non-root user) .NET 8 cannot
+      # create the extension's named mutex, so its session-end handler crashes the net8.0 test host.
+      - name: Test
+        env:
+          COVERAGE: ${{ !contains(matrix.rid, 'arm64') && !contains(matrix.rid, 'musl') }}
+        run: |
+          options=(--report-xunit-trx
+            --crashdump --crashdump-type Mini
+            --hangdump --hangdump-timeout 20m --hangdump-type-if-supported Mini)
+          if [ "$COVERAGE" = true ]; then
+            options+=(--coverage --coverage-output-format cobertura --coverage-settings "$GITHUB_WORKSPACE/tests/coverage.config")
+          fi
+
+          bash .github/scripts/test-env.sh dotnet test --solution Srt.NET.slnx -c Release "-p:NativeRuntimeIdentifier=$RID" \
+            --results-directory artifacts/test-results -- "${options[@]}"
+
+      - name: Coverage summary
+        if: ${{ !cancelled() && hashFiles('artifacts/test-results/**/*.cobertura.xml') != '' }}
+        run: |
+          dotnet tool restore
+          dotnet reportgenerator "-reports:artifacts/test-results/**/*.cobertura.xml" \
+            "-targetdir:artifacts/coverage" \
+            "-reporttypes:MarkdownSummaryGithub;HtmlInline;Cobertura" \
+            "-title:Srt.NET $RID"
+          cat artifacts/coverage/SummaryGithub.md >> "$GITHUB_STEP_SUMMARY"
+
+      # TRX files, coverage, and any crash or hang dumps. Tests use throwaway passphrases only.
+      - name: Upload test results
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: test-results-${{ matrix.rid }}
+          path: |
+            artifacts/test-results/
+            artifacts/coverage/
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Pack this runtime
+        run: >
+          bash .github/scripts/test-env.sh
+          dotnet pack src/Srt.NET/Srt.NET.csproj -c Release -o artifacts/packages -p:RequireAllNativeRuntimes=false
+
+      # The musl test image already contains the toolchain.
+      - name: Install Native AOT prerequisites
+        if: matrix.aot && runner.os == 'Linux' && !matrix.test-image
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends clang zlib1g-dev
+
+      - name: Test package contents and installation${{ matrix.aot && ', including Native AOT' || '' }}
+        env:
+          AOT: ${{ matrix.aot }}
+        run: |
+          arguments=(test-package artifacts/packages/Srt.NET.*.nupkg "$RID")
+          if [ "$AOT" = true ]; then
+            arguments+=(--aot)
+          fi
+
+          bash .github/scripts/test-env.sh dotnet run --project tools/Srt.PackageTests -c Release -- "${arguments[@]}"
+
+      - name: Upload native build
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: native-${{ matrix.rid }}
+          path: |
+            artifacts/runtimes/${{ matrix.rid }}/native/
+            artifacts/licenses/
+            artifacts/sbom/native-${{ matrix.rid }}.spdx.json
+          if-no-files-found: error
+
+  # The glibc 2.28 baseline: run the suite against the linux-x64 library on RHEL 8 with distribution .NET packages.
+  compat:
+    name: compatibility (linux-x64, RHEL 8)
+    needs: [native]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      SRTNET_TEST_IMAGE: srtnet-test-rhel8
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0 # MinVer runs during the build.
+          persist-credentials: false
+
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: native-linux-x64
+          path: artifacts
+
+      - name: Prepare the RHEL 8 test container
+        run: docker build --tag "$SRTNET_TEST_IMAGE" --file native/docker/test-rhel8.Dockerfile native/docker
+
+      - name: Test against glibc 2.28
+        run: >
+          bash .github/scripts/test-env.sh
+          dotnet test --project tests/Srt.NET.Tests/Srt.NET.Tests.csproj -c Release
+          -p:NativeRuntimeIdentifier=linux-x64
+          --results-directory artifacts/test-results
+          --
+          --report-xunit-trx
+          --crashdump --crashdump-type Mini
+          --hangdump --hangdump-timeout 20m --hangdump-type-if-supported Mini
+
+      - name: Upload test results
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: test-results-compat-rhel8
+          path: artifacts/test-results/
+          if-no-files-found: ignore
+          retention-days: 14
+
+  package:
+    needs: [lint, native, compat]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0 # MinVer derives the package version from tags.
+          persist-credentials: false
+
+      - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
+        with:
+          global-json-file: global.json
+
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: native-*
+          merge-multiple: true
+          path: artifacts
+
+      - name: Pack all runtimes with an embedded SBOM
+        run: dotnet pack src/Srt.NET/Srt.NET.csproj -c Release -o artifacts/packages -p:GenerateSBOM=true
+
+      - name: Verify the complete package
+        run: |
+          dotnet run --project tools/Srt.PackageTests -c Release -- verify-package artifacts/packages/Srt.NET.*.nupkg \
+            win-x64 linux-x64 linux-arm64 linux-musl-x64 linux-musl-arm64 osx-x64 osx-arm64
+
+          unzip -Z1 artifacts/packages/Srt.NET.*.nupkg | grep -Eq '^_manifest/[^/]+/manifest\.spdx\.json$' \
+            || { echo "::error::The package has no embedded SPDX SBOM."; exit 1; }
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: packages
+          path: |
+            artifacts/packages/*.nupkg
+            artifacts/packages/*.snupkg
+          if-no-files-found: error
+
+  # A single required status check for rulesets, so adding a runtime does not change branch protection.
+  ci-result:
+    name: CI result
+    if: ${{ always() }}
+    needs: [lint, native, compat, package]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Require every job to succeed
+        env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          for result in $RESULTS; do
+            if [ "$result" != success ]; then
+              echo "::error::A required job finished with result '$result'."
+              exit 1
+            fi
+          done
+
+  release:
+    if: github.event_name == 'push' && github.ref_type == 'tag'
+    needs: [package]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: write # Create the draft GitHub release.
+      id-token: write # Sigstore signing certificate for attestations.
+      attestations: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: packages
+          path: artifacts/packages
+
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: native-*
+          merge-multiple: true
+          path: artifacts
+
+      - name: Check release inputs
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          status=$(gh api "repos/$GITHUB_REPOSITORY/compare/main...$GITHUB_SHA" --jq .status)
+          case "$status" in
+            identical|behind) ;;
+            *) echo "::error::$TAG does not point to a commit on main ($status)."; exit 1 ;;
+          esac
+
+          shopt -s nullglob
+          packages=(artifacts/packages/Srt.NET.[0-9]*.nupkg)
+          [ "${#packages[@]}" -eq 1 ] || { echo "::error::Expected exactly one Srt.NET package."; exit 1; }
+          package="${packages[0]}"
+          version="${TAG#v}"
+          [ "$(basename "$package")" = "Srt.NET.$version.nupkg" ] || { echo "::error::The package version does not match $TAG."; exit 1; }
+          unzip -p "$package" Srt.NET.nuspec | grep -Eq '<license type="(expression|file)"' \
+            || { echo "::error::Srt.NET has no license. Select one before releasing."; exit 1; }
+
+          # A release ships its public API: every Unshipped entry must have moved to PublicAPI.Shipped.txt.
+          for unshipped in src/Srt.NET/PublicAPI/*/PublicAPI.Unshipped.txt; do
+            if tr -d '\r' < "$unshipped" | grep -v -x -e '#nullable enable' -e '' | grep -q .; then
+              echo "::error file=$unshipped::Move the Unshipped public API entries to PublicAPI.Shipped.txt before releasing."
+              exit 1
+            fi
+          done
+
+          # The nuspec (dependencies) and the MSBuild targets act on consumers' builds, so they are attested with the
+          # assemblies. SECURITY.md describes the whole-package comparison that also covers the other files.
+          mkdir -p artifacts/release artifacts/extracted
+          unzip -q "$package" 'lib/*' 'buildTransitive/*' Srt.NET.nuspec -d artifacts/extracted
+          unzip -p "$package" '_manifest/*/manifest.spdx.json' > artifacts/release/Srt.NET.spdx.json
+          cp artifacts/sbom/native-*.spdx.json artifacts/release/
+
+          # The notes are the "## [X.Y.Z]" section, up to the next section or the link definitions at the end.
+          awk -v v="$version" 'index($0, "## [" v "]") == 1 { f = 1; next } /^## \[/ || /^\[[^]]*\]: / { f = 0 } f' \
+            CHANGELOG.md > artifacts/release/notes.md
+          [ -n "$(tr -d '[:space:]' < artifacts/release/notes.md)" ] || { echo "::error::CHANGELOG.md has no section for $version."; exit 1; }
+
+      # nuget.org repository-signs packages, which changes the .nupkg digest; the extracted files keep theirs.
+      - name: Attest build provenance
+        id: provenance
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-path: |
+            artifacts/packages/*.nupkg
+            artifacts/packages/*.snupkg
+            artifacts/extracted/Srt.NET.nuspec
+            artifacts/extracted/buildTransitive/Srt.NET.targets
+            artifacts/extracted/lib/*/Srt.NET.dll
+            artifacts/runtimes/*/native/srt.dll
+            artifacts/runtimes/*/native/libsrt.so
+            artifacts/runtimes/*/native/libsrt.dylib
+
+      - name: Attest SBOM
+        id: sbom
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-path: artifacts/packages/Srt.NET.[0-9]*.nupkg
+          sbom-path: artifacts/release/Srt.NET.spdx.json
+
+      - name: Create draft GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+          PROVENANCE: ${{ steps.provenance.outputs.bundle-path }}
+          SBOM_ATTESTATION: ${{ steps.sbom.outputs.bundle-path }}
+        run: |
+          set -euo pipefail
+          cp "$PROVENANCE" artifacts/release/Srt.NET.provenance.sigstore.json
+          cp "$SBOM_ATTESTATION" artifacts/release/Srt.NET.sbom.sigstore.json
+
+          prerelease=()
+          if [[ "$TAG" == *-* ]]; then
+            prerelease=(--prerelease)
+          fi
+
+          # A re-run after a partial failure finds the draft from the earlier attempt: replace it, but never touch a
+          # published release or the tag.
+          if is_draft=$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json isDraft --jq .isDraft 2>/dev/null); then
+            [ "$is_draft" = true ] || { echo "::error::A published release already exists for $TAG."; exit 1; }
+            gh release delete "$TAG" --repo "$GITHUB_REPOSITORY" --yes
+          fi
+
+          gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --verify-tag --draft "${prerelease[@]}" \
+            --title "Srt.NET ${TAG#v}" --notes-file artifacts/release/notes.md \
+            artifacts/packages/*.nupkg artifacts/packages/*.snupkg \
+            artifacts/release/*.spdx.json artifacts/release/*.sigstore.json
+
+  publish:
+    if: github.event_name == 'push' && github.ref_type == 'tag'
+    needs: [release]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    # Protected environment: required reviewer, deployments only from v* tags.
+    environment:
+      name: nuget
+      url: https://www.nuget.org/packages/Srt.NET
+    permissions:
+      contents: write # Publish the draft release after nuget.org accepts the package.
+      id-token: write # NuGet trusted publishing.
+    steps:
+      - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
+        with:
+          dotnet-version: 10.0.x
+
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: packages
+          path: artifacts/packages
+
+      # Exchanges this job's OIDC token for an API key that is valid for one hour.
+      - name: NuGet login
+        id: nuget-login
+        uses: NuGet/login@8d196754b4036150537f80ac539e15c2f1028841 # v1.2.0
+        with:
+          user: ${{ vars.NUGET_USER }}
+
+      # Pushing the .nupkg also pushes the matching .snupkg from the same folder.
+      - name: Push to nuget.org
+        env:
+          NUGET_API_KEY: ${{ steps.nuget-login.outputs.NUGET_API_KEY }}
+        run: >
+          dotnet nuget push artifacts/packages/Srt.NET.[0-9]*.nupkg
+          --api-key "$NUGET_API_KEY" --source https://api.nuget.org/v3/index.json --skip-duplicate
+
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --draft=false

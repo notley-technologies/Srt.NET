@@ -1,0 +1,15 @@
+# Normalize text to LF in the repository and working tree, matching .editorconfig.
+* text=auto eol=lf
+
+# Windows-only scripts keep CRLF.
+*.cmd text eol=crlf
+*.bat text eol=crlf
+
+*.asc text eol=lf
+*.png binary
+*.dll binary
+*.so binary
+*.dylib binary
+*.nupkg binary
+*.snupkg binary
+*.snk binary

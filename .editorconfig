@@ -1,0 +1,121 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 4
+
+[*.{json,yml,yaml,csproj,props,targets,slnx,config}]
+indent_size = 2
+
+# Windows batch files keep CRLF (see .gitattributes).
+[*.{cmd,bat}]
+end_of_line = crlf
+
+[*.snk]
+charset = unset
+end_of_line = unset
+insert_final_newline = unset
+trim_trailing_whitespace = unset
+
+[*.cs]
+# Every C# file starts with the MPL-2.0 notice (Exhibit A of LICENSE.txt); dotnet format inserts it.
+file_header_template = This Source Code Form is subject to the terms of the Mozilla Public\nLicense, v. 2.0. If a copy of the MPL was not distributed with this\nfile, You can obtain one at https://mozilla.org/MPL/2.0/.
+dotnet_diagnostic.IDE0073.severity = error
+csharp_var_for_built_in_types = false:error
+csharp_var_when_type_is_apparent = false:error
+csharp_var_elsewhere = false:error
+csharp_prefer_braces = true:error
+csharp_style_implicit_object_creation_when_type_is_apparent = true:error
+csharp_style_prefer_collection_expression = when_types_exactly_match:error
+csharp_style_namespace_declarations = file_scoped:warning
+csharp_style_expression_bodied_constructors = false:warning
+csharp_style_expression_bodied_methods = false:warning
+csharp_style_expression_bodied_operators = false:warning
+csharp_style_expression_bodied_properties = when_on_single_line:warning
+csharp_style_expression_bodied_accessors = when_on_single_line:warning
+csharp_new_line_before_open_brace = all
+csharp_new_line_before_else = true
+csharp_new_line_before_catch = true
+csharp_new_line_before_finally = true
+csharp_new_line_before_members_in_object_initializers = true
+csharp_new_line_before_members_in_anonymous_types = true
+csharp_new_line_between_query_expression_clauses = true
+csharp_preserve_single_line_statements = false
+csharp_preserve_single_line_blocks = false
+csharp_indent_block_contents = true
+csharp_indent_braces = false
+csharp_indent_case_contents = true
+csharp_indent_case_contents_when_block = true
+csharp_indent_switch_labels = true
+dotnet_sort_system_directives_first = true
+dotnet_separate_import_directive_groups = false
+dotnet_style_require_accessibility_modifiers = for_non_interface_members:warning
+dotnet_diagnostic.IDE0008.severity = error
+dotnet_diagnostic.IDE0011.severity = error
+dotnet_diagnostic.IDE0090.severity = error
+dotnet_diagnostic.IDE0300.severity = error
+dotnet_diagnostic.IDE0301.severity = error
+dotnet_diagnostic.IDE0302.severity = error
+dotnet_diagnostic.IDE0303.severity = error
+dotnet_diagnostic.IDE0304.severity = error
+dotnet_diagnostic.IDE0305.severity = error
+dotnet_diagnostic.IDE0055.severity = error
+
+# Use StyleCop for the layout rules that the SDK does not enforce.
+dotnet_analyzer_diagnostic.category-StyleCop.CSharp.DocumentationRules.severity = none
+dotnet_analyzer_diagnostic.category-StyleCop.CSharp.LayoutRules.severity = none
+dotnet_analyzer_diagnostic.category-StyleCop.CSharp.MaintainabilityRules.severity = none
+dotnet_analyzer_diagnostic.category-StyleCop.CSharp.NamingRules.severity = none
+dotnet_analyzer_diagnostic.category-StyleCop.CSharp.OrderingRules.severity = none
+dotnet_analyzer_diagnostic.category-StyleCop.CSharp.ReadabilityRules.severity = none
+dotnet_analyzer_diagnostic.category-StyleCop.CSharp.SpacingRules.severity = none
+dotnet_diagnostic.SA1402.severity = error
+dotnet_diagnostic.SA1649.severity = error
+dotnet_diagnostic.SA1500.severity = error
+dotnet_diagnostic.SA1502.severity = error
+dotnet_diagnostic.SA1503.severity = error
+dotnet_diagnostic.SA1507.severity = error
+dotnet_diagnostic.SA1513.severity = error
+dotnet_diagnostic.SA1515.severity = error
+dotnet_diagnostic.SA1516.severity = error
+dotnet_diagnostic.SA0001.severity = none
+
+# Public API tracking. Microsoft.CodeAnalysis.PublicApiAnalyzers is referenced by src/Srt.NET only, so these rules
+# never run on tests, benchmarks, examples, or tools. Each public API change must appear in
+# src/Srt.NET/PublicAPI/<target framework>/PublicAPI.Unshipped.txt.
+dotnet_diagnostic.RS0016.severity = error
+dotnet_diagnostic.RS0017.severity = error
+dotnet_diagnostic.RS0036.severity = error
+dotnet_diagnostic.RS0037.severity = error
+dotnet_diagnostic.RS0041.severity = error
+# RS0026 and RS0027 reject the established overload families that end in
+# (TimeSpan? timeout = null, CancellationToken cancellationToken = default), and the Stream.ReadAsync and WriteAsync
+# overrides whose signatures come from System.IO.Stream. The rules exist to stop optional parameters being added to
+# shipped methods. Today RS0016 and RS0017 above, with review of the PublicAPI files, guard shipped signatures. Once a
+# version is on nuget.org and PackageValidationBaselineVersion in src/Srt.NET/Srt.NET.csproj names it (a maintainer
+# release step), package validation against that version also catches the binary break.
+# Rule for contributors: never add optional parameters to a shipped method; add an overload instead.
+dotnet_diagnostic.RS0026.severity = none
+dotnet_diagnostic.RS0027.severity = none
+
+# Asynchronous code. Library code never resumes on the caller's synchronization context. output_kind limits CA2007 to
+# class libraries (src/Srt.NET); tests (where xUnit1030 forbids ConfigureAwait(false)), benchmarks, examples, and tools
+# are executables.
+dotnet_diagnostic.CA2007.severity = error
+dotnet_code_quality.CA2007.output_kind = DynamicallyLinkedLibrary
+# Forward the CancellationToken parameter to methods that take one.
+dotnet_diagnostic.CA2016.severity = error
+# Do not create tasks without passing a TaskScheduler.
+dotnet_diagnostic.CA2008.severity = error
+
+# Library code only. Tests deliberately mix blocking and asynchronous calls on the same socket, for example a blocking
+# Connect to set up a pair or a stored ValueTask to assert that a call throws synchronously.
+[src/**.cs]
+# Call async methods when in an async method.
+dotnet_diagnostic.CA1849.severity = error
+# Use ValueTasks correctly.
+dotnet_diagnostic.CA2012.severity = error

@@ -1,0 +1,47 @@
+<!--
+  This Source Code Form is subject to the terms of the Mozilla Public
+  License, v. 2.0. If a copy of the MPL was not distributed with this
+  file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
+  Copyright (c) 2026 Noah Davis
+-->
+<Project>
+  <!--
+    Selects the staged libsrt build (artifacts/runtimes/<rid>/native/) that the tests, benchmarks, and examples
+    copy next to their output, and builds those executables for the same architecture.
+
+    Pass -p:NativeRuntimeIdentifier=<rid> to choose a build explicitly. CI always does, because source-built SDKs
+    report distribution RIDs (for example rhel.8-x64) that do not name a staged build. Otherwise an explicit
+    RuntimeIdentifier (-r) is used, and then the host: win, osx, linux, or linux-musl when the SDK RID contains
+    "musl" or /etc/alpine-release exists, with x64 or arm64 from the operating system architecture.
+
+    Import this file from a project body or from a Directory.Build.props. NETCoreSdkRuntimeIdentifier is not yet
+    defined during Directory.Build.props, so musl hosts other than Alpine need the explicit property there.
+  -->
+  <PropertyGroup Label="Native runtime selection">
+    <_SrtSupportedNativeRuntimes>;win-x64;linux-x64;linux-arm64;linux-musl-x64;linux-musl-arm64;osx-x64;osx-arm64;</_SrtSupportedNativeRuntimes>
+    <_SrtHostOperatingSystem Condition="$([MSBuild]::IsOSPlatform('Windows'))">win</_SrtHostOperatingSystem>
+    <_SrtHostOperatingSystem Condition="$([MSBuild]::IsOSPlatform('OSX'))">osx</_SrtHostOperatingSystem>
+    <_SrtHostOperatingSystem Condition="$([MSBuild]::IsOSPlatform('Linux'))">linux</_SrtHostOperatingSystem>
+    <_SrtHostOperatingSystem Condition="'$(_SrtHostOperatingSystem)' == 'linux' And ($(NETCoreSdkRuntimeIdentifier.Contains('musl')) Or Exists('/etc/alpine-release'))">linux-musl</_SrtHostOperatingSystem>
+    <_SrtHostArchitecture>$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString().ToLowerInvariant())</_SrtHostArchitecture>
+    <NativeRuntimeIdentifier Condition="'$(NativeRuntimeIdentifier)' == '' And '$(RuntimeIdentifier)' != ''">$(RuntimeIdentifier)</NativeRuntimeIdentifier>
+    <NativeRuntimeIdentifier Condition="'$(NativeRuntimeIdentifier)' == ''">$(_SrtHostOperatingSystem)-$(_SrtHostArchitecture)</NativeRuntimeIdentifier>
+    <NativeRuntimeSupported>false</NativeRuntimeSupported>
+    <NativeRuntimeSupported Condition="$(_SrtSupportedNativeRuntimes.Contains(';$(NativeRuntimeIdentifier);'))">true</NativeRuntimeSupported>
+  </PropertyGroup>
+
+  <PropertyGroup Label="Native library" Condition="'$(NativeRuntimeSupported)' == 'true'">
+    <NativeLibraryName Condition="$(NativeRuntimeIdentifier.StartsWith('win-'))">srt.dll</NativeLibraryName>
+    <NativeLibraryName Condition="$(NativeRuntimeIdentifier.StartsWith('linux-'))">libsrt.so</NativeLibraryName>
+    <NativeLibraryName Condition="$(NativeRuntimeIdentifier.StartsWith('osx-'))">libsrt.dylib</NativeLibraryName>
+    <NativeLibraryDirectory>$([MSBuild]::NormalizeDirectory('$(MSBuildThisFileDirectory)..', 'artifacts', 'runtimes', '$(NativeRuntimeIdentifier)', 'native'))</NativeLibraryDirectory>
+    <!-- The managed code must run in a process that can load the native library. -->
+    <PlatformTarget>x64</PlatformTarget>
+    <PlatformTarget Condition="$(NativeRuntimeIdentifier.EndsWith('-arm64'))">ARM64</PlatformTarget>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(NativeLibraryDirectory)' != ''">
+    <None Include="$(NativeLibraryDirectory)*" Link="%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

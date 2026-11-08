@@ -1,0 +1,55 @@
+<Solution>
+  <Configurations>
+    <Platform Name="Any CPU" />
+    <Platform Name="x64" />
+  </Configurations>
+  <Folder Name="/benchmarks/">
+    <Project Path="benchmarks/Srt.NET.Benchmarks/Srt.NET.Benchmarks.csproj" />
+  </Folder>
+  <Folder Name="/examples/">
+    <Project Path="examples/Srt.NET.Client/Srt.NET.Client.csproj" />
+    <Project Path="examples/Srt.NET.Server/Srt.NET.Server.csproj" />
+    <Project Path="examples/Srt.NET.SyncClient/Srt.NET.SyncClient.csproj" />
+    <Project Path="examples/Srt.NET.SyncServer/Srt.NET.SyncServer.csproj" />
+  </Folder>
+  <Folder Name="/src/">
+    <Project Path="src/Srt.NET/Srt.NET.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Srt.NET.Tests/Srt.NET.Tests.csproj" />
+  </Folder>
+  <Folder Name="/tools/">
+    <Project Path="tools/Srt.PackageTests/Srt.PackageTests.csproj" />
+  </Folder>
+  <Folder Name="/Solution Items/">
+    <File Path=".config/dotnet-tools.json" />
+    <File Path=".editorconfig" />
+    <File Path=".gitattributes" />
+    <File Path="CHANGELOG.md" />
+    <File Path="CONTRIBUTING.md" />
+    <File Path="Directory.Build.props" />
+    <File Path="Directory.Packages.props" />
+    <File Path="global.json" />
+    <File Path="nuget.config" />
+    <File Path="README.md" />
+    <File Path="SECURITY.md" />
+    <File Path="THIRD_PARTY_NOTICES.md" />
+  </Folder>
+  <Folder Name="/Solution Items/build/">
+    <File Path="build/NativeRuntime.props" />
+    <File Path="tests/coverage.config" />
+  </Folder>
+  <Folder Name="/Solution Items/.github/">
+    <File Path=".github/CODEOWNERS" />
+    <File Path=".github/dependabot.yml" />
+    <File Path=".github/pull_request_template.md" />
+    <File Path=".github/scripts/test-env.sh" />
+  </Folder>
+  <Folder Name="/Solution Items/.github/workflows/">
+    <File Path=".github/workflows/build.yml" />
+    <File Path=".github/workflows/codeql.yml" />
+    <File Path=".github/workflows/dependency-review.yml" />
+    <File Path=".github/workflows/native-updates.yml" />
+    <File Path=".github/workflows/scorecard.yml" />
+  </Folder>
+</Solution>

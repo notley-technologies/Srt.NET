@@ -1,0 +1,17 @@
+# Code owners are requested for review automatically. Later matches take precedence.
+# The owner is the Notley Technologies team srt-net-maintainers, which needs Write (or higher) access to this repository
+# and must be a visible team; add or remove maintainers in the team, not here.
+# Enable "Require review from Code Owners" in the main branch ruleset once there is a second maintainer.
+
+*                           @notley-technologies/srt-net-maintainers
+
+# Bundled native code, build pins, and container images.
+/native/                    @notley-technologies/srt-net-maintainers
+
+# CI, release, and repository governance.
+/.github/                   @notley-technologies/srt-net-maintainers
+/.config/                   @notley-technologies/srt-net-maintainers
+/SECURITY.md                @notley-technologies/srt-net-maintainers
+
+# Public API baselines.
+/src/Srt.NET/PublicAPI/     @notley-technologies/srt-net-maintainers
