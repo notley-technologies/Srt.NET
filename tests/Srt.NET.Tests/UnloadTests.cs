@@ -20,6 +20,12 @@ public sealed class UnloadTests : IClassFixture<RuntimeFixture>
     [Fact]
     public void ACollectibleLoadContextThatUsedSrtCanBeCollected()
     {
+        // A CLR profiler, such as the code coverage collector on Linux and macOS, keeps instrumented collectible
+        // assemblies alive, so the context could never be collected there. CI also runs this test without coverage.
+        Assert.SkipWhen(
+            Environment.GetEnvironmentVariable("CORECLR_ENABLE_PROFILING") == "1",
+            "A CLR profiler (for example code coverage) is attached and keeps collectible assemblies alive.");
+
         WeakReference context = UseAndUnload();
 
         for (int attempt = 0; attempt < 20 && context.IsAlive; attempt++)
