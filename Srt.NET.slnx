@@ -7,8 +7,8 @@
     <Project Path="benchmarks/Srt.NET.Benchmarks/Srt.NET.Benchmarks.csproj" />
   </Folder>
   <Folder Name="/examples/">
-    <Project Path="examples/Srt.NET.Client/Srt.NET.Client.csproj" />
-    <Project Path="examples/Srt.NET.Server/Srt.NET.Server.csproj" />
+    <Project Path="examples/Srt.NET.AsyncClient/Srt.NET.AsyncClient.csproj" />
+    <Project Path="examples/Srt.NET.AsyncServer/Srt.NET.AsyncServer.csproj" />
     <Project Path="examples/Srt.NET.SyncClient/Srt.NET.SyncClient.csproj" />
     <Project Path="examples/Srt.NET.SyncServer/Srt.NET.SyncServer.csproj" />
   </Folder>
@@ -19,7 +19,7 @@
     <Project Path="tests/Srt.NET.Tests/Srt.NET.Tests.csproj" />
   </Folder>
   <Folder Name="/tools/">
-    <Project Path="tools/Srt.PackageTests/Srt.PackageTests.csproj" />
+    <Project Path="tools/Srt.NET.PackageValidation/Srt.NET.PackageValidation.csproj" />
   </Folder>
   <Folder Name="/Solution Items/">
     <File Path=".config/dotnet-tools.json" />

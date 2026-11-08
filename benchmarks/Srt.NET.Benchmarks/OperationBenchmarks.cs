@@ -10,7 +10,7 @@ using BenchmarkDotNet.Configs;
 using Srt.Net;
 using Srt.Net.Interop;
 
-namespace Srt.NET.Benchmarks;
+namespace Srt.Net.Benchmarks;
 
 /// <summary>Per-call cost and allocations of nonblocking operations on an idle connection.</summary>
 /// <remarks>

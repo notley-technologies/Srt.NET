@@ -7,6 +7,7 @@
 -->
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
+    <RootNamespace>Srt.Net</RootNamespace>
     <TargetFrameworks>netstandard2.0;net8.0</TargetFrameworks>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
@@ -34,7 +35,7 @@
     -->
     <_SrtSbomComponentDirectory>$([MSBuild]::NormalizeDirectory('$(MSBuildProjectDirectory)', '$(BaseIntermediateOutputPath)', 'sbom-components'))</_SrtSbomComponentDirectory>
     <SbomGenerationBuildComponentPath Condition="'$(SbomGenerationBuildComponentPath)' == ''">$(_SrtSbomComponentDirectory)</SbomGenerationBuildComponentPath>
-    <!-- SPDX documents for libsrt and its statically linked OpenSSL, one per runtime, written by native/StageNative.cmake. -->
+    <!-- SPDX documents for libsrt and its statically linked OpenSSL, one per runtime, written by native/cmake/StageNative.cmake. -->
     <SrtNativeSbomDirectory Condition="'$(SrtNativeSbomDirectory)' == ''">$([MSBuild]::NormalizeDirectory('$(MSBuildThisFileDirectory)', '..', '..', 'artifacts', 'sbom'))</SrtNativeSbomDirectory>
   </PropertyGroup>
 
@@ -79,7 +80,7 @@
     <None Include="../../artifacts/runtimes/**/*" Pack="true" PackagePath="runtimes/%(RecursiveDir)%(Filename)%(Extension)" />
     <None Include="../../artifacts/licenses/libsrt-*.txt;../../artifacts/licenses/openssl-*.txt" Pack="true" PackagePath="licenses/%(RecursiveDir)%(Filename)%(Extension)" />
     <None Include="$(SrtNativeSbomDirectory)native-*.spdx.json" Pack="true" PackagePath="sbom/" />
-    <None Include="../../buildTransitive/Srt.NET.targets" Pack="true" PackagePath="buildTransitive/" />
+    <None Include="buildTransitive/Srt.NET.targets" Pack="true" PackagePath="buildTransitive/" />
   </ItemGroup>
 
   <Target Name="ValidateNativePackage" BeforeTargets="GenerateNuspec" Condition="'$(RequireAllNativeRuntimes)' == 'true'">

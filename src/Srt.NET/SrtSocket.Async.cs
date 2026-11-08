@@ -9,6 +9,7 @@ using System.Diagnostics;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
+using Srt.Net.Async;
 using Srt.Net.Interop;
 
 namespace Srt.Net;

@@ -16,7 +16,7 @@ using System.Threading.Tasks;
 using Srt.Net;
 using Xunit;
 
-namespace Srt.NET.Tests;
+namespace Srt.Net.Tests;
 
 /// <summary>Verifies the instruments of the Srt.Net meter (tests run one at a time, so measurements are isolated).</summary>
 public sealed class MetricsTests : IClassFixture<RuntimeFixture>

@@ -6,7 +6,7 @@
 
 using BenchmarkDotNet.Running;
 
-namespace Srt.NET.Benchmarks;
+namespace Srt.Net.Benchmarks;
 
 internal static class Program
 {

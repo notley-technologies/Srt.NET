@@ -6,7 +6,7 @@ Sources: [pinned C header](https://github.com/Haivision/srt/blob/899348d8318eb9a
 
 ## Scope and decisions
 
-Implemented priorities are application-owned readiness polling, explicit nonblocking operations and connection completion, complete transport statistics, message metadata, connection admission, native logging, and the stable socket controls needed for tuning and diagnosis. The [server example](../examples/Srt.NET.Server/Program.cs) uses an AcceptAsync loop with one task per client and no log suppression; the [advanced usage guide](advanced-usage.md#wait-before-accepting) shows a poller that watches a listener together with other sockets.
+Implemented priorities are application-owned readiness polling, explicit nonblocking operations and connection completion, complete transport statistics, message metadata, connection admission, native logging, and the stable socket controls needed for tuning and diagnosis. The [server example](../examples/Srt.NET.AsyncServer/Program.cs) uses an AcceptAsync loop with one task per client and no log suppression; the [advanced usage guide](advanced-usage.md#wait-before-accepting) shows a poller that watches a listener together with other sockets.
 
 The application controls which sockets to monitor, when to wait, its deadline/cancellation policy, and when to accept or transfer data. Register listeners before Listen and callers before BeginConnect. Do not use AvailableEvents as a listener-pending check.
 

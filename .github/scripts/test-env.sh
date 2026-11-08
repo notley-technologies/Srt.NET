@@ -6,7 +6,7 @@
 # Copyright (c) 2026 Noah Davis
 #
 # Runs a command on the runner, or inside the container image named by SRTNET_TEST_IMAGE (the musl and RHEL 8 jobs,
-# built from native/docker/test-musl.Dockerfile and native/docker/test-rhel8.Dockerfile).
+# built from tests/linux/musl.Dockerfile and tests/linux/rhel8.Dockerfile).
 # The container runs as the invoking user and mounts the workspace at the same absolute path, so absolute and
 # relative paths mean the same thing in both places and every output stays owned by the runner user.
 #

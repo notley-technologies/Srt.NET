@@ -25,6 +25,24 @@ Srt.NET is licensed under the [Mozilla Public License 2.0](LICENSE.txt). Bundled
 
 Use the issue forms for bugs and feature requests. Report vulnerabilities privately as described in [SECURITY.md](SECURITY.md), never in a public issue.
 
+## Repository layout
+
+| Path | Contents |
+| --- | --- |
+| `src/Srt.NET/` | The library: public API at the root, `Interop/` (native calls, structures, codecs, handle lifetime), `Async/` (the readiness engine and operation queues), `Polyfills/`, `PublicAPI/` baselines, the package readme and `buildTransitive/` MSBuild targets |
+| `tests/Srt.NET.Tests/` | Unit and integration tests against the real libsrt; shared helpers are in `Infrastructure/` |
+| `tests/PackageConsumers/` | Consumer application templates that the package tests install the packed package into |
+| `tests/linux/` | RHEL 8 and Alpine test containers and `run-tests.sh` |
+| `tools/Srt.NET.PackageValidation/` | Package verification and installation tests (`verify-package`, `test-package`, `verify-native`) |
+| `benchmarks/Srt.NET.Benchmarks/` | BenchmarkDotNet benchmarks |
+| `examples/` | Asynchronous and synchronous client and server examples |
+| `native/` | The native build of libsrt and OpenSSL; see [native/README.md](native/README.md) |
+| `docs/` | User documentation, packed into the NuGet package |
+| `build/` | MSBuild settings shared by tests, examples and benchmarks |
+| `.github/` | Workflows, Dependabot, CODEOWNERS, issue and pull request templates |
+
+Build outputs go to `bin/`, `obj/` and `artifacts/`, which git ignores.
+
 ## Prerequisites
 
 | Tool | Needed for |
@@ -46,10 +64,10 @@ Tests and packages need the native library for your runtime in `artifacts/runtim
 **Linux** (`linux-x64`, `linux-arm64`, `linux-musl-x64`, `linux-musl-arm64`) builds run in pinned containers (manylinux_2_28 for glibc, Alpine for musl) as your user, from Linux or from Git Bash on Windows with Docker Desktop:
 
 ```bash
-bash native/docker/build-native.sh linux-x64
-bash native/docker/build-native.sh linux-arm64
-bash native/docker/build-native.sh linux-musl-x64
-bash native/docker/build-native.sh linux-musl-arm64
+bash native/build-linux.sh linux-x64
+bash native/build-linux.sh linux-arm64
+bash native/build-linux.sh linux-musl-x64
+bash native/build-linux.sh linux-musl-arm64
 ```
 
 The script fails if the library is not portable: it must need glibc 2.28 or older (or musl), must not depend on `libstdc++` or `libgcc_s`, and must export only `srt_*` symbols. A runtime for another CPU architecture builds under QEMU emulation, which is much slower; CI builds each architecture on a matching runner.
@@ -95,13 +113,13 @@ CI collects coverage on `win-x64`, `linux-x64`, and `osx-x64` and writes the Rep
 **musl and RHEL 8.** CI runs the musl tests in an Alpine container and the `linux-x64` tests again on RHEL 8 (glibc 2.28, the oldest supported baseline):
 
 ```bash
-docker build -t srtnet-test-musl -f native/docker/test-musl.Dockerfile native/docker
-docker build -t srtnet-test-rhel8 -f native/docker/test-rhel8.Dockerfile native/docker
-bash native/docker/test-linux.sh linux-musl-x64 srtnet-test-musl
-bash native/docker/test-linux.sh linux-x64 srtnet-test-rhel8
+docker build -t srtnet-test-musl -f tests/linux/musl.Dockerfile tests/linux
+docker build -t srtnet-test-rhel8 -f tests/linux/rhel8.Dockerfile tests/linux
+bash tests/linux/run-tests.sh linux-musl-x64 srtnet-test-musl
+bash tests/linux/run-tests.sh linux-x64 srtnet-test-rhel8
 ```
 
-`test-linux.sh` copies the sources into the container and builds there, so it never rewrites your `obj/` folders, and copies the results to `artifacts/test-results/<rid>/<image>/`. Extra arguments are passed to `dotnet test`. CI uses `.github/scripts/test-env.sh` instead, which runs commands (tests, packing, and package tests) in the container with the checkout mounted read-write; only use it in a clone that you do not also build on Windows or macOS.
+`run-tests.sh` copies the sources into the container and builds there, so it never rewrites your `obj/` folders, and copies the results to `artifacts/test-results/<rid>/<image>/`. Extra arguments are passed to `dotnet test`. CI uses `.github/scripts/test-env.sh` instead, which runs commands (tests, packing, and package tests) in the container with the checkout mounted read-write; only use it in a clone that you do not also build on Windows or macOS.
 
 ## Formatting and analyzers
 
@@ -129,11 +147,11 @@ Pack the runtimes you have built and test the package as an application would co
 
 ```bash
 dotnet pack src/Srt.NET/Srt.NET.csproj -c Release -o artifacts/packages -p:RequireAllNativeRuntimes=false
-dotnet run --project tools/Srt.PackageTests -c Release -- verify-package artifacts/packages/Srt.NET.<version>.nupkg linux-x64
-dotnet run --project tools/Srt.PackageTests -c Release -- test-package artifacts/packages/Srt.NET.<version>.nupkg linux-x64 --aot
+dotnet run --project tools/Srt.NET.PackageValidation -c Release -- verify-package artifacts/packages/Srt.NET.<version>.nupkg linux-x64
+dotnet run --project tools/Srt.NET.PackageValidation -c Release -- test-package artifacts/packages/Srt.NET.<version>.nupkg linux-x64 --aot
 ```
 
-`verify-package` checks managed and native assets, architectures, exports, hashes, and notices; with no runtime arguments it requires all seven runtimes. `test-package` installs the package into fresh consumer applications and runs them; `--aot` also publishes and runs a Native AOT consumer for the host runtime (it needs a Microsoft-built SDK and the native toolchain listed under prerequisites). Never distribute a partial package (`RequireAllNativeRuntimes=false`) or the `Srt.NET.PackageTestBridge` test fixture. A release pack needs all seven runtimes and adds an SPDX SBOM with `-p:GenerateSBOM=true`. See [tools/README.md](tools/README.md).
+`verify-package` checks managed and native assets, architectures, exports, hashes, and notices; with no runtime arguments it requires all seven runtimes. `test-package` installs the package into fresh consumer applications and runs them; `--aot` also publishes and runs a Native AOT consumer for the host runtime (it needs a Microsoft-built SDK and the native toolchain listed under prerequisites). Never distribute a partial package (`RequireAllNativeRuntimes=false`) or the `Srt.NET.PackageWrapper` test fixture. A release pack needs all seven runtimes and adds an SPDX SBOM with `-p:GenerateSBOM=true`. See [tools/README.md](tools/README.md).
 
 ## Rules for changes
 
@@ -148,7 +166,7 @@ dotnet run --project tools/Srt.PackageTests -c Release -- test-package artifacts
 
 libsrt and OpenSSL are pinned in `native/versions.json`, which Dependabot cannot update. The `Native dependency check` workflow opens a tracking issue when a newer OpenSSL 3.5 or libsrt release exists.
 
-- **OpenSSL** (needs GnuPG): `cmake -DOPENSSL_VERSION=3.5.<n> -P native/UpdateOpenSSL.cmake`. It downloads the official archive, verifies its signature against `native/openssl-release-key.asc` and its version, then records the version and SHA-256 in `native/versions.json` and updates the notices. Signing-key changes need separate review against the [OpenSSL release-signing fingerprints](https://openssl-library.org/source/).
+- **OpenSSL** (needs GnuPG): `cmake -DOPENSSL_VERSION=3.5.<n> -P native/cmake/UpdateOpenSSL.cmake`. It downloads the official archive, verifies its signature against `native/openssl-release-key.asc` and its version, then records the version and SHA-256 in `native/versions.json` and updates the notices. Signing-key changes need separate review against the [OpenSSL release-signing fingerprints](https://openssl-library.org/source/).
 - **libsrt**: change the release version and the immutable upstream commit in `native/versions.json`, and update `THIRD_PARTY_NOTICES.md` and the native version test.
 - Rebuild and test every runtime: the full CI matrix must pass, including the RHEL 8 compatibility job and the package tests. Changes under `native/` invalidate the CI native cache automatically; the Windows and macOS keys also include the runner image version.
 - Add a CHANGELOG entry. OpenSSL security fixes require a new Srt.NET release even when the managed code is unchanged.

@@ -1,13 +1,13 @@
 # Build and package-test tools
 
-The native build uses CMake and the upstream C/C++ toolchains, and the Linux runtimes build in pinned containers (see [native/README.md](../native/README.md)). It does not require the .NET SDK. `native/StageNative.cmake` verifies source inputs, checks Linux libraries against the portability gate, stages the native library and dependency notices, and writes the build manifest (`srt.build-info.json`) and an SPDX document. It also adjusts the macOS library identity and signature. MinVer derives package versions from Git tags. Standard .NET SDK and MSBuild commands compile the managed library and create its NuGet and symbol packages.
+The native build uses CMake and the upstream C/C++ toolchains, and the Linux runtimes build in pinned containers (see [native/README.md](../native/README.md)). It does not require the .NET SDK. `native/cmake/StageNative.cmake` verifies source inputs, checks Linux libraries against the portability gate, stages the native library and dependency notices, and writes the build manifest (`srt.build-info.json`) and an SPDX document. It also adjusts the macOS library identity and signature. MinVer derives package versions from Git tags. Standard .NET SDK and MSBuild commands compile the managed library and create its NuGet and symbol packages.
 
-`Srt.PackageTests` is a C# test runner. It never builds or stages native libraries or creates a release package. Its commands are:
+`Srt.NET.PackageValidation` is a C# command-line tool that validates packages and native libraries. It never builds or stages native libraries or creates a release package. Its commands are:
 
 ```text
-dotnet run --project tools/Srt.PackageTests -c Release -- verify-package <package.nupkg> [rid ...]
-dotnet run --project tools/Srt.PackageTests -c Release -- test-package <package.nupkg> <rid> [--aot]
-dotnet run --project tools/Srt.PackageTests -c Release -- verify-native <rid> <native library> [Srt.NET.dll]
+dotnet run --project tools/Srt.NET.PackageValidation -c Release -- verify-package <package.nupkg> [rid ...]
+dotnet run --project tools/Srt.NET.PackageValidation -c Release -- test-package <package.nupkg> <rid> [--aot]
+dotnet run --project tools/Srt.NET.PackageValidation -c Release -- verify-native <rid> <native library> [Srt.NET.dll]
 ```
 
 The supported runtime identifiers are `win-x64`, `linux-x64`, `linux-arm64`, `linux-musl-x64`, `linux-musl-arm64`, `osx-x64`, and `osx-arm64`.
@@ -37,7 +37,7 @@ The consumer matrix exercises:
 - .NET 10 on every runtime, plus .NET Framework 4.8 on Windows. On Windows it also builds a .NET Framework consumer with no platform target, which must run as x64, checks that an x86 build fails with Srt.NET's architecture error, and builds and runs a .NET Framework consumer on C# 7.3, that framework's default language version, with warnings treated as errors.
 - With `--aot`, a Native AOT publish of the direct consumer for the host runtime, with trimming warnings treated as errors. It needs a Microsoft-built SDK and a native toolchain (MSVC, clang with zlib headers on Linux, or the Xcode command line tools); Linux distribution source-built SDKs, such as RHEL's, cannot publish Native AOT.
 
-Each output runs from its own directory and must include the native library and dependency notices. The shared [smoke test](../tests/Srt.NET.PackageTests/PackageSmokeTest.cs) exercises encryption, readiness, messages, statistics, the native logging callback, and asynchronous I/O, and deliberately leaves a socket open to check that the process still exits cleanly. The wrapper is a test fixture and must never be published. The consumer templates stay outside the main solution because they need a packed Srt.NET artifact before restore.
+Each output runs from its own directory and must include the native library and dependency notices. The shared [smoke test](../tests/PackageConsumers/PackageSmokeTest.cs) exercises encryption, readiness, messages, statistics, the native logging callback, and asynchronous I/O, and deliberately leaves a socket open to check that the process still exits cleanly. The wrapper is a test fixture and must never be published. The consumer templates stay outside the main solution because they need a packed Srt.NET artifact before restore.
 
 ## Benchmarks
 

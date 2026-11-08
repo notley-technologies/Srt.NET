@@ -8,7 +8,7 @@ using System;
 using BenchmarkDotNet.Attributes;
 using Srt.Net.Interop;
 
-namespace Srt.NET.Benchmarks;
+namespace Srt.Net.Benchmarks;
 
 /// <summary>
 /// The native cost of one readiness check: a poll created for each wait versus a long-lived poll, which is

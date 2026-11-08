@@ -16,7 +16,7 @@ using Srt.Net;
 using Srt.Net.Interop;
 using Xunit;
 
-namespace Srt.NET.Tests;
+namespace Srt.Net.Tests;
 
 /// <summary>
 /// Property-based tests (FsCheck) for code that translates data across the native boundary. Generators cover the full

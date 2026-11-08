@@ -12,10 +12,11 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Srt.Net;
+using Srt.Net.Async;
 using Srt.Net.Interop;
 using Xunit;
 
-namespace Srt.NET.Tests;
+namespace Srt.Net.Tests;
 
 public sealed class AsyncTests : IClassFixture<RuntimeFixture>
 {

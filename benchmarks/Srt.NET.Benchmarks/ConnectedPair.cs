@@ -8,7 +8,7 @@ using System;
 using System.Net;
 using Srt.Net;
 
-namespace Srt.NET.Benchmarks;
+namespace Srt.Net.Benchmarks;
 
 /// <summary>A loopback caller and accepted peer configured for file-mode messages.</summary>
 internal sealed class ConnectedPair : IDisposable

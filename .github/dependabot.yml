@@ -38,7 +38,7 @@ updates:
 
   # Pinned build and test images. They are part of the native cache key, so an update rebuilds the Linux runtimes.
   - package-ecosystem: docker
-    directory: /native/docker
+    directories: [/native/docker, /tests/linux]
     schedule:
       interval: weekly
     ignore:
