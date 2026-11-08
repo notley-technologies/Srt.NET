@@ -325,7 +325,9 @@ public sealed class EngineTests : IClassFixture<RuntimeFixture>
             Assert.True(SrtAsyncEngine.RegisteredSockets >= baseline + 2);
         }
 
-        Assert.Equal(baseline, SrtAsyncEngine.RegisteredSockets);
+        // In the file profile, linger keeps a socket registered while its queued data drains; a sender disposed before
+        // the peer's acknowledgement arrives holds one registration for that short drain. Every registration must end.
+        Assert.True(SpinWait.SpinUntil(() => SrtAsyncEngine.RegisteredSockets == baseline, Deadline), $"{SrtAsyncEngine.RegisteredSockets - baseline} disposed sockets are still registered with the engine.");
     }
 
     [Fact]
