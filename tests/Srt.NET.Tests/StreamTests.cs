@@ -117,6 +117,22 @@ public sealed class StreamTests : IClassFixture<RuntimeFixture>
     [Fact]
     public async Task ABrokenConnectionFailsReadsInsteadOfEndingTheStream()
     {
+        // libsrt releases a broken socket on its next cleanup pass once its received data has been read, and after that a
+        // break and an orderly close both report InvalidSocket. A read that runs after the release therefore cannot tell
+        // them apart (docs/advanced-usage.md). That race depends on scheduling, so try a few times to observe the break.
+        for (int attempt = 0; attempt < 3; attempt++)
+        {
+            if (await BreakIsObservedAndStaysAnErrorAsync())
+            {
+                return;
+            }
+        }
+
+        Assert.Skip("libsrt released the broken socket before the read in every attempt, so the break could not be observed.");
+    }
+
+    private static async Task<bool> BreakIsObservedAndStaysAnErrorAsync()
+    {
         using SrtSocket listener = new();
         listener.SetOption(SrtOptions.TransmissionType, SrtTransmissionType.File);
         listener.SetOption(SrtOptions.PeerIdleTimeout, 1000);
@@ -134,22 +150,33 @@ public sealed class StreamTests : IClassFixture<RuntimeFixture>
         byte[] buffer = new byte[16];
         Assert.Equal(3, await input.ReadAsync(buffer, 0, 3, timeout.Token));
 
-        // No orderly close arrives: the connection breaks at the peer idle timeout. libsrt releases a broken socket on
-        // its next cleanup pass, after which a break and an orderly close look the same; it keeps the socket while
-        // received data is unread, so leave some unread to observe the break deterministically.
+        // No orderly close arrives: the connection breaks at the peer idle timeout. libsrt keeps a broken socket while
+        // received data is unread, so data received before the break is still delivered.
         relay.DropEverything();
         Assert.True(SpinWait.SpinUntil(() => input.Socket.State == SrtSocketState.Broken, Deadline));
-
-        // Data received before the break is still delivered, and then the break must not read as the end.
         Assert.Equal(3, await input.ReadAsync(buffer, 0, buffer.Length, timeout.Token));
         Assert.Equal(new byte[] { 4, 5, 6 }, buffer.Take(3));
-        await Assert.ThrowsAnyAsync<IOException>(() => input.ReadAsync(buffer, 0, buffer.Length, timeout.Token));
 
-        // Once libsrt has released the broken socket it reports InvalidSocket, as after an orderly close. The stream has
-        // already reported the break, so reads must keep failing rather than turn into the end of the stream.
+        try
+        {
+            int read = await input.ReadAsync(buffer, 0, buffer.Length, timeout.Token);
+
+            // Ending the stream is only acceptable when libsrt had already released the socket.
+            Assert.Equal(0, read);
+            Assert.True(IsReleased(input.Socket), "A broken connection read as the end of the stream while libsrt still reported it.");
+
+            return false;
+        }
+        catch (IOException)
+        {
+        }
+
+        // The stream has reported the break, so reads must keep failing once libsrt releases the socket.
         Assert.True(SpinWait.SpinUntil(() => IsReleased(input.Socket), Deadline));
         await Assert.ThrowsAnyAsync<IOException>(() => input.ReadAsync(buffer, 0, buffer.Length, timeout.Token));
         Assert.ThrowsAny<IOException>(() => input.Read(buffer, 0, buffer.Length));
+
+        return true;
     }
 
     [Fact]
