@@ -116,6 +116,43 @@ internal sealed unsafe class SrtAsyncEngine
     /// <summary>The number of sockets registered with the running engine, for diagnostics and tests.</summary>
     internal static int RegisteredSockets => Volatile.Read(ref instance) is SrtAsyncEngine engine ? Volatile.Read(ref engine.registered) : 0;
 
+    /// <summary>The number of subscribed sockets and pending drains the running engine tracks, for tests.</summary>
+    /// <remarks>Once registrations stop changing, it equals <see cref="RegisteredSockets"/>: each one is counted exactly once.</remarks>
+    internal static int TrackedSockets
+    {
+        get
+        {
+            if (Volatile.Read(ref instance) is not SrtAsyncEngine engine)
+            {
+                return 0;
+            }
+
+            lock (engine.drainGate)
+            {
+                return engine.contexts.Count + engine.drains.Count;
+            }
+        }
+    }
+
+    /// <summary>Whether the running engine still holds a subscription or a pending drain for the socket, for tests.</summary>
+    internal static bool Tracks(int socketId)
+    {
+        if (Volatile.Read(ref instance) is not SrtAsyncEngine engine)
+        {
+            return false;
+        }
+
+        if (engine.contexts.ContainsKey(socketId))
+        {
+            return true;
+        }
+
+        lock (engine.drainGate)
+        {
+            return engine.drains.Exists(drain => drain.Key == socketId);
+        }
+    }
+
     /// <summary>Registers a socket, starting the engine if needed. Call while holding a lease on the socket.</summary>
     internal static SrtAsyncEngine Register(SrtAsyncContext context)
     {
