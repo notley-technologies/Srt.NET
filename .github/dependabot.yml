@@ -36,7 +36,7 @@ updates:
       tests-and-tools:
         patterns: ['xunit*', 'FsCheck', 'BenchmarkDotNet', 'Microsoft.*', 'MinVer', 'StyleCop.*', 'dotnet-reportgenerator-globaltool']
 
-  # Pinned build and test images. They are part of the native cache key, so an update rebuilds the Linux runtimes.
+  # Pinned build images (part of the native cache key, so an update rebuilds the Linux runtimes) and test images.
   - package-ecosystem: docker
     directories: [/native/docker, /tests/linux]
     schedule:
