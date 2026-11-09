@@ -162,8 +162,17 @@ internal static unsafe class SrtAsyncIo
         }
     }
 
-    internal static bool TryCompleteConnect(SrtSocketHandle handle, out Exception? error)
+    /// <remarks>
+    /// While libsrt completes a handshake (CUDT::postConnect), it clears the socket's connecting flag before it sets its
+    /// connected flag, and srt_getsockstate reports Broken in between, with no rejection reason. A check that runs in that
+    /// window must keep waiting; the Connect readiness edge follows once the state is Connected. A failed attempt is final
+    /// once libsrt has given it a rejection reason, which it does before reporting a timeout or a rejected handshake, or
+    /// has raised error readiness, which it does for every attempt it gives up on, including the few that carry no reason.
+    /// </remarks>
+    internal static bool TryCompleteConnect(SrtAsyncContext context, out Exception? error)
     {
+        SrtSocketHandle handle = context.Handle;
+
         if (!TryBorrow(handle, out int socket, out error))
         {
             return true;
@@ -178,10 +187,19 @@ internal static unsafe class SrtAsyncIo
                 return false;
             }
 
-            if (state != SrtSocketState.Connected)
+            if (state == SrtSocketState.Connected)
             {
-                error = SrtException.ConnectionFailed("connect the SRT socket", NativeMethods.srt_getrejectreason(socket));
+                return true;
             }
+
+            int reason = NativeMethods.srt_getrejectreason(socket);
+
+            if (state == SrtSocketState.Broken && reason == (int)SrtRejectReason.Unknown && !context.ErrorReported)
+            {
+                return false;
+            }
+
+            error = SrtException.ConnectionFailed("connect the SRT socket", reason);
 
             return true;
         }

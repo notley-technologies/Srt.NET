@@ -332,6 +332,36 @@ public sealed class EngineTests : IClassFixture<RuntimeFixture>
     }
 
     [Fact]
+    public void ConnectCompletionWaitsThroughTheBrokenStateThatEndsAHandshake()
+    {
+        // While libsrt completes a handshake, srt_getsockstate briefly reports Broken with no rejection reason. Connects
+        // check the state inline right after srt_connect and on each readiness edge; an inline check delayed into that
+        // window used to fail a connection that was succeeding, with "rejection 0". Checking continuously, as here, lands
+        // in the window in most attempts.
+        using SrtSocket listener = new();
+        listener.Bind(new(IPAddress.Loopback, 0));
+        listener.Listen();
+
+        for (int attempt = 0; attempt < 20; attempt++)
+        {
+            using SrtSocket caller = new();
+            SrtAsyncContext context = caller.GetAsyncContext();
+            caller.BeginConnect(listener.LocalEndPoint);
+            System.Diagnostics.Stopwatch elapsed = System.Diagnostics.Stopwatch.StartNew();
+            Exception? error;
+
+            while (!SrtAsyncIo.TryCompleteConnect(context, out error))
+            {
+                Assert.True(elapsed.Elapsed < Deadline, "The connection did not complete.");
+            }
+
+            Assert.Null(error);
+            Assert.Equal(SrtSocketState.Connected, caller.State);
+            listener.Accept(Deadline).Dispose();
+        }
+    }
+
+    [Fact]
     public async Task AnAcceptLoopKeepsServingAfterAQueuedClientLeaves()
     {
         using SrtSocket listener = new();

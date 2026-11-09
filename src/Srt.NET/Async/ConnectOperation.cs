@@ -55,7 +55,7 @@ internal sealed class ConnectOperation : SrtAsyncOperation, IValueTaskSource
 
     protected override bool TryCompleteOperation()
     {
-        return SrtAsyncIo.TryCompleteConnect(Context.Handle, out error);
+        return SrtAsyncIo.TryCompleteConnect(Context, out error);
     }
 
     protected override void RecordFailure(Exception failure)

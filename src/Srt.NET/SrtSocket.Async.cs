@@ -155,7 +155,8 @@ public sealed partial class SrtSocket
         }
     }
 
-    private SrtAsyncContext GetAsyncContext()
+    /// <summary>Returns the socket's operation queues, subscribing it with the engine on first use.</summary>
+    internal SrtAsyncContext GetAsyncContext()
     {
         return Volatile.Read(ref asyncContext) ?? CreateAsyncContext();
     }
