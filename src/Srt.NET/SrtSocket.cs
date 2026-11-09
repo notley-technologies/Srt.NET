@@ -288,7 +288,7 @@ public sealed unsafe partial class SrtSocket : IDisposable
 
             Exception? error;
 
-            if (!(context.SendQueue.IsReady(out int observed) && SrtAsyncIo.TryCompleteConnect(handle, out error)))
+            if (!(context.SendQueue.IsReady(out int observed) && SrtAsyncIo.TryCompleteConnect(context, out error)))
             {
                 if (duration == TimeSpan.Zero)
                 {

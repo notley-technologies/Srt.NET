@@ -315,20 +315,55 @@ public sealed class EngineTests : IClassFixture<RuntimeFixture>
     [Fact]
     public async Task DisposedSocketsLeaveTheEngine()
     {
-        int baseline = SrtAsyncEngine.RegisteredSockets;
-
         using CancellationTokenSource timeout = new(Deadline);
+        int caller;
+        int peer;
 
         using (ConnectionPair pair = TestSockets.Connect())
         {
             await pair.Caller.SendAsync(new byte[] { 1 }, timeout.Token);
             await pair.Peer.ReceiveAsync(new byte[1500], timeout.Token);
-            Assert.True(SrtAsyncEngine.RegisteredSockets >= baseline + 2);
+            caller = SocketId(pair.Caller);
+            peer = SocketId(pair.Peer);
+            Assert.True(SrtAsyncEngine.Tracks(caller) && SrtAsyncEngine.Tracks(peer));
         }
 
-        // In the file profile, linger keeps a socket registered while its queued data drains; a sender disposed before
-        // the peer's acknowledgement arrives holds one registration for that short drain. Every registration must end.
-        Assert.True(SpinWait.SpinUntil(() => SrtAsyncEngine.RegisteredSockets == baseline, Deadline), $"{SrtAsyncEngine.RegisteredSockets - baseline} disposed sockets are still registered with the engine.");
+        // The engine's total also counts sockets that earlier tests left draining or awaiting finalization, which can end
+        // at any time, so follow these two sockets. In the file profile, linger keeps a socket registered while its queued
+        // data drains; a sender disposed before the peer's acknowledgement arrives keeps its registration for that short
+        // drain. Every registration must end, and be uncounted exactly once.
+        Assert.True(SpinWait.SpinUntil(() => !SrtAsyncEngine.Tracks(caller) && !SrtAsyncEngine.Tracks(peer), Deadline), "A disposed socket is still registered with the engine.");
+        Assert.True(SpinWait.SpinUntil(() => SrtAsyncEngine.RegisteredSockets == SrtAsyncEngine.TrackedSockets, Deadline), $"The engine counts {SrtAsyncEngine.RegisteredSockets} registrations but tracks {SrtAsyncEngine.TrackedSockets} sockets.");
+    }
+
+    [Fact]
+    public void ConnectCompletionWaitsThroughTheBrokenStateThatEndsAHandshake()
+    {
+        // While libsrt completes a handshake, srt_getsockstate briefly reports Broken with no rejection reason. Connects
+        // check the state inline right after srt_connect and on each readiness edge; an inline check delayed into that
+        // window used to fail a connection that was succeeding, with "rejection 0". Checking continuously, as here, lands
+        // in the window in most attempts.
+        using SrtSocket listener = new();
+        listener.Bind(new(IPAddress.Loopback, 0));
+        listener.Listen();
+
+        for (int attempt = 0; attempt < 20; attempt++)
+        {
+            using SrtSocket caller = new();
+            SrtAsyncContext context = caller.GetAsyncContext();
+            caller.BeginConnect(listener.LocalEndPoint);
+            System.Diagnostics.Stopwatch elapsed = System.Diagnostics.Stopwatch.StartNew();
+            Exception? error;
+
+            while (!SrtAsyncIo.TryCompleteConnect(context, out error))
+            {
+                Assert.True(elapsed.Elapsed < Deadline, "The connection did not complete.");
+            }
+
+            Assert.Null(error);
+            Assert.Equal(SrtSocketState.Connected, caller.State);
+            listener.Accept(Deadline).Dispose();
+        }
     }
 
     [Fact]
@@ -425,6 +460,11 @@ public sealed class EngineTests : IClassFixture<RuntimeFixture>
         Assert.True(pending, "The receive did not start waiting for data in time.");
     }
 
+    private static int SocketId(SrtSocket socket)
+    {
+        return socket.Handle.DangerousGetHandle().ToInt32();
+    }
+
     [MethodImpl(MethodImplOptions.NoInlining)]
     private static async Task<(int SocketId, SrtSocket Peer)> CreateAbandonedConnectionAsync()
     {
@@ -439,6 +479,6 @@ public sealed class EngineTests : IClassFixture<RuntimeFixture>
         await peer.ReceiveAsync(new byte[1500], timeout.Token);
 
         // Drop the caller without disposing it.
-        return (caller.Handle.DangerousGetHandle().ToInt32(), peer);
+        return (SocketId(caller), peer);
     }
 }

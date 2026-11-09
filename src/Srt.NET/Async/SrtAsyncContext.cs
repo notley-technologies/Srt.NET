@@ -33,6 +33,7 @@ internal sealed class SrtAsyncContext
     private int pendingEvents;
     private int scheduled;
     private int aborted;
+    private int errorReported;
     private SrtAsyncEngine? engine;
 
     internal SrtAsyncContext(SrtSocketHandle handle, int socketId)
@@ -64,6 +65,9 @@ internal sealed class SrtAsyncContext
     }
 
     internal Exception? Fault => Volatile.Read(ref fault);
+
+    /// <summary>Whether libsrt has reported error readiness for the socket since it subscribed.</summary>
+    internal bool ErrorReported => Volatile.Read(ref errorReported) != 0;
 
     internal SrtOperationQueue QueueFor(bool sending)
     {
@@ -101,6 +105,8 @@ internal sealed class SrtAsyncContext
     {
         if ((events & NativeConstants.SRT_EPOLL_ERR) != 0)
         {
+            // Recorded before the queues see the event, so every attempt that the event wakes or retries reads it.
+            Volatile.Write(ref errorReported, 1);
             events |= NativeConstants.SRT_EPOLL_IN | NativeConstants.SRT_EPOLL_OUT;
         }
 
@@ -394,7 +400,7 @@ internal sealed class SrtAsyncContext
 
     internal ValueTask ConnectAsync(CancellationToken cancellationToken)
     {
-        if (SendQueue.IsReady(out int observed) && SrtAsyncIo.TryCompleteConnect(Handle, out Exception? error))
+        if (SendQueue.IsReady(out int observed) && SrtAsyncIo.TryCompleteConnect(this, out Exception? error))
         {
             return error == null ? default : new(Task.FromException(error));
         }

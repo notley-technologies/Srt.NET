@@ -100,7 +100,7 @@ internal sealed unsafe class SyncOperation : SrtAsyncOperation
                 return acceptDone;
 
             case Kind.Connect:
-                bool connectDone = SrtAsyncIo.TryCompleteConnect(Context.Handle, out Exception? connectError);
+                bool connectDone = SrtAsyncIo.TryCompleteConnect(Context, out Exception? connectError);
                 Error = connectError;
 
                 return connectDone;
