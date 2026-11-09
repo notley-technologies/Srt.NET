@@ -171,4 +171,19 @@ public sealed class DiagnosticsTests : IClassFixture<RuntimeFixture>
         Assert.Equal(SrtSocketState.Closed, pair.Caller.State);
         Assert.Equal(SrtErrorCode.InvalidSocket, Assert.Throws<SrtException>(() => pair.Caller.GetSendBuffer()).SrtErrorCode);
     }
+
+    [Fact]
+    public void DiagnosticsOfASocketThatLibsrtReleasedFailWithInvalidSocket()
+    {
+        using ConnectionPair pair = TestSockets.Connect();
+        long connected = pair.Peer.ConnectionTimeMicroseconds;
+        Assert.True(connected > 0);
+
+        // libsrt releases the peer's socket some time after the caller closes; the managed socket stays undisposed.
+        pair.Caller.Dispose();
+        Assert.True(SpinWait.SpinUntil(() => pair.Peer.State is SrtSocketState.Closed or SrtSocketState.Nonexistent, TimeSpan.FromSeconds(30)));
+
+        Assert.Equal(SrtErrorCode.InvalidSocket, Assert.Throws<SrtException>(() => pair.Peer.ConnectionTimeMicroseconds).SrtErrorCode);
+        Assert.Equal(SrtErrorCode.InvalidSocket, Assert.Throws<SrtException>(() => pair.Peer.GetStatistics()).SrtErrorCode);
+    }
 }

@@ -105,4 +105,30 @@ public sealed class AdmissionTests : IClassFixture<RuntimeFixture>
         Assert.StartsWith("cam", read, StringComparison.Ordinal);
         Assert.Contains('\uFFFD', read);
     }
+
+    [Fact]
+    public void AdmissionReadsInheritedOptionsAndRejectsReservedReasons()
+    {
+        using SrtSocket listener = new();
+        using SrtSocket caller = new();
+        int? idleTimeout = null;
+        listener.SetOption(SrtOptions.PeerIdleTimeout, 4321);
+        listener.SetConnectionHandler(request =>
+        {
+            // The pending socket inherits the listener's options.
+            idleTimeout = request.GetOption(SrtOptions.PeerIdleTimeout);
+
+            // Codes below 1000 belong to libsrt; the exception rejects the peer.
+            request.SetRejectionReason(SrtRejectReason.Fallback - 1);
+
+            return true;
+        });
+        listener.Bind(new(IPAddress.Loopback, 0));
+        listener.Listen();
+
+        Assert.Throws<SrtException>(() => caller.Connect(listener.LocalEndPoint, TestSockets.Deadline));
+        Assert.Equal(4321, idleTimeout);
+        ArgumentOutOfRangeException error = Assert.IsType<ArgumentOutOfRangeException>(listener.LastAdmissionException);
+        Assert.Equal("reason", error.ParamName);
+    }
 }

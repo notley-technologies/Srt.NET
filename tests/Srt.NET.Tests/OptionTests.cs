@@ -122,6 +122,43 @@ public sealed class OptionTests : IClassFixture<RuntimeFixture>
         }
     }
 
+    [Fact]
+    public void RejectsNullOptionsNullStringsAndUnsupportedValueTypes()
+    {
+        using SrtSocket socket = new();
+        Assert.Throws<ArgumentNullException>("option", () => socket.GetOption<int>(null!));
+        Assert.Throws<ArgumentNullException>("option", () => socket.SetOption<int>(null!, 1));
+        Assert.Throws<ArgumentNullException>("value", () => socket.SetOption(SrtOptions.StreamId, null!));
+
+        // The codec only marshals the value types that SrtOptions uses.
+        SrtOption<double> unsupported = new(46, "SRTO_STREAMID");
+        Assert.Throws<ArgumentException>("option", () => socket.GetOption(unsupported));
+        Assert.Throws<ArgumentException>("option", () => socket.SetOption(unsupported, 1.0));
+        Assert.Equal(string.Empty, socket.GetOption(SrtOptions.StreamId));
+    }
+
+    [Fact]
+    public void StringOptionsLongerThanTheStackBufferUsePooledBuffers()
+    {
+        // A wider limit than SrtOptions.StreamId declares, so values above the 1024-byte stack buffer reach libsrt.
+        SrtOption<string> wide = new(46, "SRTO_STREAMID", maximumBytes: 2048);
+        using SrtSocket socket = new();
+        string accepted = new('s', 512);
+        socket.SetOption(wide, accepted);
+        Assert.Equal(accepted, socket.GetOption(wide));
+
+        // libsrt's own limit for stream identifiers is 512 bytes, and a refused value leaves the old one in place.
+        Assert.Throws<SrtException>(() => socket.SetOption(wide, new string('x', 1500)));
+        Assert.Equal(accepted, socket.GetOption(SrtOptions.StreamId));
+    }
+
+    [Fact]
+    public void OptionsDisplayTheirNativeNames()
+    {
+        Assert.Equal("SRTO_STREAMID", SrtOptions.StreamId.ToString());
+        Assert.Equal(SrtOptions.Passphrase.Name, SrtOptions.Passphrase.ToString());
+    }
+
     private static void Exercise<T>(SrtOption<T> option, object sample)
     {
         if (ReferenceEquals(option, SrtOptions.BindToDevice) && !RuntimeInformation.IsOSPlatform(OSPlatform.Linux))

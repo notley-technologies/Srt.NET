@@ -195,12 +195,129 @@ public sealed class StreamTests : IClassFixture<RuntimeFixture>
         Assert.Equal(0, input.Read(buffer, 0, buffer.Length));
     }
 
+    [Fact]
+    public async Task ExposesTimeoutsAndFlushesAsNoOps()
+    {
+        (SrtSocket sender, SrtSocket receiver) = ConnectFileStream();
+        using SrtStream output = new(sender, ownsSocket: true);
+        using SrtStream input = new(receiver, ownsSocket: true);
+
+        Assert.Equal(Timeout.Infinite, input.ReadTimeout);
+        Assert.Equal(Timeout.Infinite, output.WriteTimeout);
+        input.ReadTimeout = 250;
+        output.WriteTimeout = 750;
+        Assert.Equal(250, input.ReadTimeout);
+        Assert.Equal(750, output.WriteTimeout);
+        input.ReadTimeout = Timeout.Infinite;
+        Assert.Equal(Timeout.Infinite, input.ReadTimeout);
+        Assert.Throws<ArgumentOutOfRangeException>(() => input.ReadTimeout = -2);
+
+        output.Flush();
+        await output.FlushAsync(CancellationToken.None);
+        using CancellationTokenSource canceled = new();
+        canceled.Cancel();
+        Task flushing = output.FlushAsync(canceled.Token);
+        Assert.True(flushing.IsCanceled);
+
+        Assert.Throws<NotSupportedException>(() => output.Position);
+        Assert.Throws<NotSupportedException>(() => output.Position = 0);
+        Assert.Throws<NotSupportedException>(() => output.SetLength(0));
+        Assert.True(output.CanWrite);
+    }
+
+    [Fact]
+    public async Task ValidatesBufferArgumentsAndAllowsEmptyReads()
+    {
+        (SrtSocket sender, SrtSocket receiver) = ConnectFileStream();
+        using SrtStream output = new(sender, ownsSocket: true);
+        using SrtStream input = new(receiver, ownsSocket: true);
+        byte[] buffer = new byte[16];
+
+        Assert.Throws<ArgumentNullException>("buffer", () => input.Read(null!, 0, 0));
+        Assert.Throws<ArgumentOutOfRangeException>("offset", () => input.Read(buffer, -1, 1));
+        Assert.Throws<ArgumentOutOfRangeException>("offset", () => input.Read(buffer, 17, 0));
+        Assert.Throws<ArgumentOutOfRangeException>("count", () => input.Read(buffer, 0, 17));
+        Assert.Throws<ArgumentOutOfRangeException>("count", () => output.Write(buffer, 8, -1));
+        Assert.Throws<ArgumentNullException>("buffer", () => { _ = output.WriteAsync(null!, 0, 0); });
+
+        // Empty reads return at once instead of waiting for data, and empty writes send nothing.
+        Assert.Equal(0, input.Read(buffer, 0, 0));
+        Assert.Equal(0, await input.ReadAsync(buffer, 16, 0));
+        output.Write(buffer, 0, 0);
+        await output.WriteAsync(buffer, 0, 0);
+
+        output.Write([4, 5], 0, 2);
+        Assert.Equal(new byte[] { 4, 5 }, await ReadExactlyAsync(input, 2));
+    }
+
+#if NET
+    [Fact]
+    public async Task SpanAndMemoryOverloadsTransferData()
+    {
+        (SrtSocket sender, SrtSocket receiver) = ConnectFileStream();
+        using SrtStream output = new(sender, ownsSocket: true);
+        using SrtStream input = new(receiver, ownsSocket: true);
+        using CancellationTokenSource timeout = new(Deadline);
+
+        output.Write([1, 2, 3]);
+        await output.WriteAsync(new ReadOnlyMemory<byte>([4, 5]), timeout.Token);
+        byte[] received = new byte[5];
+        int count = 0;
+
+        while (count < 3)
+        {
+            count += input.Read(received.AsSpan(count, 3 - count));
+        }
+
+        while (count < received.Length)
+        {
+            count += await input.ReadAsync(received.AsMemory(count), timeout.Token);
+        }
+
+        Assert.Equal(new byte[] { 1, 2, 3, 4, 5 }, received);
+        Assert.Equal(0, input.Read([]));
+        Assert.Equal(0, await input.ReadAsync(Memory<byte>.Empty, timeout.Token));
+    }
+#endif
+
+    [Fact]
+    public void AWriteThatCannotBeQueuedInTimeFailsWithAnIOException()
+    {
+        // Small buffers on both sides, and nobody reads, so the writer runs out of buffer space.
+        (SrtSocket sender, SrtSocket receiver) = ConnectFileStream(bufferBytes: 64 * 1456);
+        using SrtStream output = new(sender, ownsSocket: true)
+        {
+            WriteTimeout = 100
+        };
+        using SrtStream input = new(receiver, ownsSocket: true);
+
+        IOException timedOut = Assert.Throws<IOException>(() => output.Write(new byte[4 * 1024 * 1024], 0, 4 * 1024 * 1024));
+        Assert.IsType<TimeoutException>(timedOut.InnerException);
+        Assert.Equal(SrtSocketState.Connected, sender.State);
+    }
+
+    private static async Task<byte[]> ReadExactlyAsync(Stream stream, int length)
+    {
+        using CancellationTokenSource timeout = new(Deadline);
+        byte[] buffer = new byte[length];
+        int count = 0;
+
+        while (count < length)
+        {
+            int read = await stream.ReadAsync(buffer, count, length - count, timeout.Token);
+            Assert.NotEqual(0, read);
+            count += read;
+        }
+
+        return buffer;
+    }
+
     private static bool IsReleased(SrtSocket socket)
     {
         return socket.State is SrtSocketState.Closed or SrtSocketState.Nonexistent;
     }
 
-    private static (SrtSocket Sender, SrtSocket Receiver) ConnectFileStream()
+    private static (SrtSocket Sender, SrtSocket Receiver) ConnectFileStream(int? bufferBytes = null)
     {
         using SrtSocket listener = new();
         SrtSocket caller = new();
@@ -209,6 +326,13 @@ public sealed class StreamTests : IClassFixture<RuntimeFixture>
         {
             listener.SetOption(SrtOptions.TransmissionType, SrtTransmissionType.File);
             caller.SetOption(SrtOptions.TransmissionType, SrtTransmissionType.File);
+
+            if (bufferBytes.HasValue)
+            {
+                listener.SetOption(SrtOptions.ReceiveBufferSize, bufferBytes.Value);
+                caller.SetOption(SrtOptions.SendBufferSize, bufferBytes.Value);
+            }
+
             listener.Bind(new(IPAddress.Loopback, 0));
             listener.Listen();
             caller.Connect(listener.LocalEndPoint, TimeSpan.FromSeconds(5));
