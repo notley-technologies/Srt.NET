@@ -12,7 +12,7 @@ using System.Runtime.Loader;
 using Srt.Net;
 using Xunit;
 
-namespace Srt.NET.Tests;
+namespace Srt.Net.Tests;
 
 /// <summary>Plug-in hosts load Srt.NET into collectible load contexts and must be able to unload it again.</summary>
 public sealed class UnloadTests : IClassFixture<RuntimeFixture>

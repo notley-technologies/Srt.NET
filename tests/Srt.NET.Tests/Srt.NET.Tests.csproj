@@ -9,6 +9,7 @@
   <!-- Selects artifacts/runtimes/<rid>/native and the matching PlatformTarget; override with -p:NativeRuntimeIdentifier=<rid>. -->
   <Import Project="../../build/NativeRuntime.props" />
   <PropertyGroup>
+    <RootNamespace>Srt.Net.Tests</RootNamespace>
     <OutputType>Exe</OutputType>
     <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
     <TargetFrameworks Condition="'$(OS)' == 'Windows_NT'">$(TargetFrameworks);net48</TargetFrameworks>

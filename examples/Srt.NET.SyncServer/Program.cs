@@ -11,7 +11,7 @@ using System.Text;
 using System.Threading;
 using Srt.Net;
 
-namespace Srt.NET.SyncServer;
+namespace Srt.Net.Examples.SyncServer;
 
 internal static class Program
 {

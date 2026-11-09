@@ -1,0 +1,8 @@
+{
+  "recommendations": [
+    "ms-dotnettools.csdevkit",
+    "ms-vscode.cmake-tools",
+    "editorconfig.editorconfig",
+    "esbenp.prettier-vscode"
+  ]
+}

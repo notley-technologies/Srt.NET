@@ -165,7 +165,7 @@ jobs:
         if: steps.native-cache.outputs.cache-hit != 'true' && matrix.build == 'docker'
         run: |
           # shellcheck disable=SC2086 # NATIVE_CMAKE_ARGS holds separate arguments.
-          bash native/docker/build-native.sh "$RID" $NATIVE_CMAKE_ARGS
+          bash native/build-linux.sh "$RID" $NATIVE_CMAKE_ARGS
 
       - name: Build native libraries (macOS)
         if: steps.native-cache.outputs.cache-hit != 'true' && matrix.build == 'cmake'
@@ -187,7 +187,7 @@ jobs:
 
       - name: Prepare the musl test container
         if: matrix.test-image
-        run: docker build --tag "$SRTNET_TEST_IMAGE" --file native/docker/test-musl.Dockerfile native/docker
+        run: docker build --tag "$SRTNET_TEST_IMAGE" --file tests/linux/musl.Dockerfile tests/linux
 
       # Test-platform options follow "--". Without --coverage-output, every test app (net8.0, net10.0, and net48 on
       # Windows) writes its own coverage file. Coverage runs on win-x64, linux-x64, and osx-x64 only: the extension
@@ -248,7 +248,7 @@ jobs:
             arguments+=(--aot)
           fi
 
-          bash .github/scripts/test-env.sh dotnet run --project tools/Srt.PackageTests -c Release -- "${arguments[@]}"
+          bash .github/scripts/test-env.sh dotnet run --project tools/Srt.NET.PackageValidation -c Release -- "${arguments[@]}"
 
       - name: Upload native build
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -280,7 +280,7 @@ jobs:
           path: artifacts
 
       - name: Prepare the RHEL 8 test container
-        run: docker build --tag "$SRTNET_TEST_IMAGE" --file native/docker/test-rhel8.Dockerfile native/docker
+        run: docker build --tag "$SRTNET_TEST_IMAGE" --file tests/linux/rhel8.Dockerfile tests/linux
 
       - name: Test against glibc 2.28
         run: >
@@ -327,7 +327,7 @@ jobs:
 
       - name: Verify the complete package
         run: |
-          dotnet run --project tools/Srt.PackageTests -c Release -- verify-package artifacts/packages/Srt.NET.*.nupkg \
+          dotnet run --project tools/Srt.NET.PackageValidation -c Release -- verify-package artifacts/packages/Srt.NET.*.nupkg \
             win-x64 linux-x64 linux-arm64 linux-musl-x64 linux-musl-arm64 osx-x64 osx-arm64
 
           unzip -Z1 artifacts/packages/Srt.NET.*.nupkg | grep -Eq '^_manifest/[^/]+/manifest\.spdx\.json$' \

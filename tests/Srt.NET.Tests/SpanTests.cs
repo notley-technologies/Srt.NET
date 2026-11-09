@@ -12,7 +12,7 @@ using System.Threading.Tasks;
 using Srt.Net;
 using Xunit;
 
-namespace Srt.NET.Tests;
+namespace Srt.Net.Tests;
 
 public sealed class SpanTests : IClassFixture<RuntimeFixture>
 {

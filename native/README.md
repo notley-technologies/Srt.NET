@@ -2,23 +2,24 @@
 
 This folder builds libsrt with a statically linked OpenSSL for every Srt.NET runtime and stages the result in `artifacts/`. [CONTRIBUTING.md](../CONTRIBUTING.md) has the build commands; this page explains what the build guarantees and how to maintain it.
 
-| File | Purpose |
+| Path | Purpose |
 | --- | --- |
 | `versions.json` | Pinned libsrt commit and OpenSSL release (URL, SHA-256, signing key) |
-| `CMakeLists.txt` | Builds OpenSSL, then libsrt, then runs `StageNative.cmake` |
-| `build-windows.cmd`, `build-macos.sh` | Complete Windows and macOS build recipes, used by CI and contributors |
-| `StageNative.cmake` | Checks the sources, verifies and copies the library, writes the manifest, notices and SBOM |
-| `VerifyElf.cmake` | Portability gate for Linux libraries |
-| `VerifyMachO.cmake` | Portability gate for macOS libraries |
-| `NativeSbom.cmake` | SPDX 2.2 document for the staged library |
-| `libsrt.map` | Linux version script: exports only `srt_*` |
-| `libsrt.exp` | macOS exported symbols list: exports only `_srt_*` |
-| `windows/` | `DllMain` for `srt.dll` that frees OpenSSL's per-thread state, added to libsrt's build without patching it |
-| `docker/` | Pinned Linux build and test images, `build-native.sh` and `test-linux.sh` |
-| `UpdateOpenSSL.cmake`, `VerifyOpenSSL.cmake` | Verified OpenSSL updates |
-| `PrepareWindows.cmake` | Pinned Perl and NASM for Windows builds |
+| `openssl-release-key.asc` | OpenSSL release-signing key used to verify the downloaded archive |
+| `CMakeLists.txt` | Builds OpenSSL, then libsrt, then runs `cmake/StageNative.cmake` |
+| `build-linux.sh`, `build-macos.sh`, `build-windows.cmd` | Complete build recipes per operating system, used by CI and contributors |
+| `cmake/StageNative.cmake` | Checks the sources, verifies and copies the library, writes the manifest, notices and SBOM |
+| `cmake/VerifyElf.cmake`, `cmake/VerifyMachO.cmake` | Portability gates for Linux and macOS libraries |
+| `cmake/NativeSbom.cmake`, `cmake/CollectNotices.cmake` | SPDX 2.2 document and dependency notices for the staged library |
+| `cmake/UpdateOpenSSL.cmake`, `cmake/VerifyOpenSSL.cmake` | Verified OpenSSL updates |
+| `linux/libsrt.map` | Linux version script: exports only `srt_*` |
+| `macos/libsrt.exp` | macOS exported symbols list: exports only `_srt_*` |
+| `windows/` | `DllMain` for `srt.dll` that frees OpenSSL's per-thread state (added to libsrt's build without patching it), and `PrepareWindows.cmake`, which downloads the pinned Perl and NASM |
+| `docker/` | Pinned Linux build images used by `build-linux.sh` |
 
-CI builds with the same scripts (`build-windows.cmd`, `build-macos.sh`, `docker/build-native.sh`). The CI native cache key combines a hash of this folder with the extra CMake arguments the workflow passes (`NATIVE_CMAKE_ARGS`), so it changes whenever the recipe does. Windows and macOS keys also include the runner image version, because those builds use the runner's compiler.
+The Linux test containers (RHEL 8 and Alpine) are not part of the native build; they live in [tests/linux](../tests/linux).
+
+CI builds with the same scripts (`build-windows.cmd`, `build-macos.sh`, `build-linux.sh`). The CI native cache key combines a hash of this folder with the extra CMake arguments the workflow passes (`NATIVE_CMAKE_ARGS`), so it changes whenever the recipe does. Windows and macOS keys also include the runner image version, because those builds use the runner's compiler.
 
 ## Runtimes
 
@@ -29,7 +30,7 @@ CI builds with the same scripts (`build-windows.cmd`, `build-macos.sh`, `docker/
 | `linux-musl-x64`, `linux-musl-arm64` | Alpine 3.22 (musl 1.2.5, GCC 14) | musl 1.2.5 and later (Alpine 3.22, the oldest supported Alpine branch, and later) |
 | `osx-x64`, `osx-arm64` | Xcode command line tools | macOS 13 and later |
 
-CMake detects musl from the compiler's target triple, and the requested runtime must match the host. Linux runtimes are built with `docker/build-native.sh`, which runs the CMake build in the pinned image for that runtime.
+CMake detects musl from the compiler's target triple, and the requested runtime must match the host. Linux runtimes are built with `build-linux.sh`, which runs the CMake build in the pinned image for that runtime.
 
 ## What every build guarantees
 
@@ -63,11 +64,11 @@ OpenSSL and libsrt are compiled with `-fstack-protector-strong` and `_FORTIFY_SO
 - requires macOS 13.0 or earlier (`LC_BUILD_VERSION` minos);
 - exports only `_srt_*` symbols.
 
-libsrt is compiled with hidden visibility and a file-prefix map, and linked with `-dead_strip` and `libsrt.exp`. `Srt.PackageTests verify-package` applies the same dependency, run-path, minimum version and export rules to the packed library with its own Mach-O reader.
+libsrt is compiled with hidden visibility and a file-prefix map, and linked with `-dead_strip` and `libsrt.exp`. `Srt.NET.PackageValidation verify-package` applies the same dependency, run-path, minimum version and export rules to the packed library with its own Mach-O reader.
 
 ## Reproducibility
 
-`build-native.sh` always builds in `/build/<rid>` inside the container, so a rebuild does not depend on the host. The glibc runtimes rebuild byte-identically from the same image digests and sources as long as the image contents are unchanged: the manylinux images contain their GCC toolset, but they may update packages such as `glibc-devel` when the image is built, so `srt.build-info.json` lists the toolchain package versions that were used. The Alpine image installs its toolchain (GCC, binutils, musl-dev, fortify-headers) from the Alpine 3.22 repository when it is built, and that repository keeps only the newest revision of each package. musl rebuilds are therefore byte-identical only while those package revisions are unchanged; `srt.build-info.json` lists the versions that were used. On Windows the build tree lives in the Docker volume `srtnet-native-build`, because Docker Desktop's drive mounts are too slow for OpenSSL's many small files; on Linux it is `artifacts/native-build/<rid>`. Set `SRTNET_BUILD_VOLUME` to override either.
+`build-linux.sh` always builds in `/build/<rid>` inside the container, so a rebuild does not depend on the host. The glibc runtimes rebuild byte-identically from the same image digests and sources as long as the image contents are unchanged: the manylinux images contain their GCC toolset, but they may update packages such as `glibc-devel` when the image is built, so `srt.build-info.json` lists the toolchain package versions that were used. The Alpine image installs its toolchain (GCC, binutils, musl-dev, fortify-headers) from the Alpine 3.22 repository when it is built, and that repository keeps only the newest revision of each package. musl rebuilds are therefore byte-identical only while those package revisions are unchanged; `srt.build-info.json` lists the versions that were used. On Windows the build tree lives in the Docker volume `srtnet-native-build`, because Docker Desktop's drive mounts are too slow for OpenSSL's many small files; on Linux it is `artifacts/native-build/<rid>`. Set `SRTNET_BUILD_VOLUME` to override either.
 
 ## Updating the build images
 

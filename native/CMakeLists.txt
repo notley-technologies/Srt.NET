@@ -59,7 +59,7 @@ endif()
 
 if(NOT SRTNET_RID IN_LIST SRTNET_RUNTIMES OR NOT SRTNET_RID STREQUAL "${HOST_OS}-${HOST_ARCH}")
     message(FATAL_ERROR "Set SRTNET_RID to a supported runtime matching this host (${HOST_OS}-${HOST_ARCH}). "
-        "Supported runtimes: ${SRTNET_RUNTIME_LIST}. Linux runtimes are built in containers: bash native/docker/build-native.sh <rid>.")
+        "Supported runtimes: ${SRTNET_RUNTIME_LIST}. Linux runtimes are built in containers: bash native/build-linux.sh <rid>.")
 endif()
 
 file(READ "${CMAKE_CURRENT_SOURCE_DIR}/versions.json" DEPENDENCIES)
@@ -179,7 +179,7 @@ else()
         # unused code is discarded and the prefix map keeps build-machine paths out of libsrt's log locations. The
         # C++ runtime is the system libc++, and Apple's compiler enables stack protection and _FORTIFY_SOURCE by
         # default. StageNative.cmake checks the result (VerifyMachO.cmake).
-        set(SRT_EXPORTED_SYMBOLS "${CMAKE_CURRENT_SOURCE_DIR}/libsrt.exp")
+        set(SRT_EXPORTED_SYMBOLS "${CMAKE_CURRENT_SOURCE_DIR}/macos/libsrt.exp")
         set(SRT_C_FLAGS "-fvisibility=hidden -ffile-prefix-map=${SRT_SOURCE}=srt")
         set(SRT_CXX_FLAGS "${SRT_C_FLAGS} -fvisibility-inlines-hidden")
         set(SRT_SHARED_LINKER_FLAGS "-Wl,-exported_symbols_list,${SRT_EXPORTED_SYMBOLS} -Wl,-dead_strip")
@@ -195,7 +195,7 @@ else()
             set(OPENSSL_TARGET linux-x86_64)
         endif()
 
-        set(SRT_VERSION_SCRIPT "${CMAKE_CURRENT_SOURCE_DIR}/libsrt.map")
+        set(SRT_VERSION_SCRIPT "${CMAKE_CURRENT_SOURCE_DIR}/linux/libsrt.map")
 
         # Stack protection and fortified libc calls for OpenSSL and libsrt alike; the manylinux compiler enables
         # neither by default. OpenSSL's Configure turns -D options into preprocessor flags, which follow the other
@@ -291,7 +291,7 @@ add_custom_target(stage-native ALL
         "-DC_COMPILER=${CMAKE_C_COMPILER}"
         "-DCXX_COMPILER=${CMAKE_CXX_COMPILER}"
         "-DREADELF=${CMAKE_READELF}"
-        -P "${CMAKE_CURRENT_SOURCE_DIR}/StageNative.cmake"
+        -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/StageNative.cmake"
     DEPENDS srt
     WORKING_DIRECTORY "${REPOSITORY_ROOT}"
     VERBATIM)

@@ -12,14 +12,14 @@ rem   Example: native\build-windows.cmd -DSRTNET_TEST_OPENSSL=ON
 rem
 rem Runs from any command prompt. Unless the prompt is already an x64 Visual Studio developer prompt, it finds Visual
 rem Studio 2022 with the x64 C++ tools through vswhere and enters its developer environment. It then downloads the
-rem pinned Perl and NASM (PrepareWindows.cmake) and builds in artifacts\native-build\win-x64. CI runs this script; its
+rem pinned Perl and NASM (windows\PrepareWindows.cmake) and builds in artifacts\native-build\win-x64. CI runs this script; its
 rem native cache key combines a hash of native\ with the arguments the workflow passes.
 setlocal
 
 if /i not "%VSCMD_ARG_TGT_ARCH%"=="x64" call :enter_developer_environment || exit /b 1
 
 cd /d "%~dp0.." || exit /b 1
-cmake -P native/PrepareWindows.cmake || exit /b 1
+cmake -P native/windows/PrepareWindows.cmake || exit /b 1
 
 rem OpenSSL's build scripts need native Windows Perl and NASM, and the C locale.
 set "LC_ALL=C"

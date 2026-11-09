@@ -9,7 +9,7 @@ using System.Net;
 using System.Text;
 using Srt.Net;
 
-namespace Srt.NET.SyncClient;
+namespace Srt.Net.Examples.SyncClient;
 
 internal static class Program
 {

@@ -9,6 +9,7 @@ using System;
 using System.Runtime.Loader;
 #endif
 using System.Threading;
+using Srt.Net.Async;
 
 namespace Srt.Net.Interop;
 

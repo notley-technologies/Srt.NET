@@ -11,10 +11,11 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Srt.Net;
+using Srt.Net.Async;
 using Srt.Net.Interop;
 using Xunit;
 
-namespace Srt.NET.Tests;
+namespace Srt.Net.Tests;
 
 /// <summary>Regression tests for the shared readiness engine and its libsrt edge cases.</summary>
 public sealed class EngineTests : IClassFixture<RuntimeFixture>

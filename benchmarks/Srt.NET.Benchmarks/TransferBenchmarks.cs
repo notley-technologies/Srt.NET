@@ -7,7 +7,7 @@
 using System;
 using BenchmarkDotNet.Attributes;
 
-namespace Srt.NET.Benchmarks;
+namespace Srt.Net.Benchmarks;
 
 /// <summary>Loopback send-then-receive exchanges, including the receive-side wait for data to arrive.</summary>
 [MemoryDiagnoser]

@@ -4,7 +4,7 @@
 #
 # Copyright (c) 2026 Noah Davis
 #
-# Build environment for the linux-x64 runtime (used by build-native.sh).
+# Build environment for the linux-x64 runtime (used by native/build-linux.sh).
 #
 # manylinux_2_28 is AlmaLinux 8 with glibc 2.28 and the GCC 14 toolset, so the library runs on glibc 2.28 and
 # newer (RHEL 8, Debian 10, Ubuntu 20.04 and later). The image is pinned by digest; update tag and digest
@@ -28,5 +28,5 @@ RUN dnf -y install \
     && dnf clean all \
     && rm -rf /var/cache/dnf
 
-# Mount point for a build-tree volume; build-native.sh uses one where host mounts are slow (Docker Desktop on Windows).
+# Mount point for a build-tree volume; native/build-linux.sh uses one where host mounts are slow (Docker Desktop on Windows).
 RUN install -d -m 1777 /build

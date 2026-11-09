@@ -4,7 +4,7 @@ These console applications are a starting point for Srt.NET. Each client sends o
 
 | API | Client | Server |
 | --- | --- | --- |
-| Asynchronous | [Srt.NET.Client](Srt.NET.Client/Program.cs): `ConnectAsync`, `SendAsync`, and `ReceiveAsync` under one timeout | [Srt.NET.Server](Srt.NET.Server/Program.cs): an `AcceptAsync` loop that serves each client on its own task |
+| Asynchronous | [Srt.NET.AsyncClient](Srt.NET.AsyncClient/Program.cs): `ConnectAsync`, `SendAsync`, and `ReceiveAsync` under one timeout | [Srt.NET.AsyncServer](Srt.NET.AsyncServer/Program.cs): an `AcceptAsync` loop that serves each client on its own task |
 | Synchronous | [Srt.NET.SyncClient](Srt.NET.SyncClient/Program.cs): `Connect`, `Send`, and `Receive`, each with a timeout | [Srt.NET.SyncServer](Srt.NET.SyncServer/Program.cs): an `Accept` loop that serves each client on its own thread |
 
 All four use the same port and protocol, so any client works with either server.
@@ -14,7 +14,7 @@ All four use the same port and protocol, so any client works with either server.
 Use the .NET SDK selected by the root `global.json` and install the .NET 8 runtime. Build libsrt once for your platform using the [contributing guide](../CONTRIBUTING.md). On Linux, the build runs in a pinned container, so only Docker is required. For example, from the repository root on Linux x64:
 
 ```sh
-bash native/docker/build-native.sh linux-x64
+bash native/build-linux.sh linux-x64
 ```
 
 Supported runtime identifiers are `win-x64`, `linux-x64`, `linux-arm64`, `linux-musl-x64`, `linux-musl-arm64`, `osx-x64`, and `osx-arm64`. The examples pick the identifier that matches the machine they are built on.
@@ -26,13 +26,13 @@ The examples reference the library project directly and copy the native files fr
 Run these commands from the repository root. Start the server first:
 
 ```sh
-dotnet run --project examples/Srt.NET.Server
+dotnet run --project examples/Srt.NET.AsyncServer
 ```
 
 Wait for `Listening on 127.0.0.1:9000`, then start the client in another terminal:
 
 ```sh
-dotnet run --project examples/Srt.NET.Client
+dotnet run --project examples/Srt.NET.AsyncClient
 ```
 
 For the synchronous pair, run `examples/Srt.NET.SyncServer` and `examples/Srt.NET.SyncClient` the same way. Only one server can listen on port 9000 at a time.

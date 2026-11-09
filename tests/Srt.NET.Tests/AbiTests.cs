@@ -9,7 +9,7 @@ using System.Runtime.InteropServices;
 using Srt.Net.Interop;
 using Xunit;
 
-namespace Srt.NET.Tests;
+namespace Srt.Net.Tests;
 
 public sealed class AbiTests
 {

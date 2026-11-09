@@ -8,6 +8,7 @@ using System;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Threading;
+using Srt.Net.Async;
 
 namespace Srt.Net.Interop;
 

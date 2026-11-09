@@ -12,7 +12,7 @@ using System.Runtime.InteropServices;
 using Srt.Net;
 using Xunit;
 
-namespace Srt.NET.Tests;
+namespace Srt.Net.Tests;
 
 /// <summary>Exercises every option on <see cref="SrtOptions"/> on a fresh, unbound socket.</summary>
 public sealed class OptionTests : IClassFixture<RuntimeFixture>

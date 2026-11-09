@@ -88,7 +88,7 @@ jobs:
             echo
             echo "Update procedure (see CONTRIBUTING.md, \"Updating native dependencies\"):"
             echo
-            echo "- OpenSSL: \`cmake -DOPENSSL_VERSION=<version> -P native/UpdateOpenSSL.cmake\` (needs GnuPG)."
+            echo "- OpenSSL: \`cmake -DOPENSSL_VERSION=<version> -P native/cmake/UpdateOpenSSL.cmake\` (needs GnuPG)."
             echo "- libsrt: update the version and immutable commit in \`native/versions.json\`, the notices, and the native version test."
             echo "- Add a CHANGELOG entry (under Security when the update fixes vulnerabilities), run the full CI matrix, and release."
             echo
