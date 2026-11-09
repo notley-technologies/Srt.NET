@@ -265,4 +265,4 @@ NativeLibrary.SetDllImportResolver(typeof(SrtSocket).Assembly, (name, assembly, 
 
 On .NET Framework, the package copies its `srt.dll` beside the application on every build and publish, and that copy is loaded first. To use your own build there, replace the file in the build and publish output, for example with a target that runs after the copy; a file replaced by hand is overwritten by the next clean build.
 
-The build must be libsrt 1.5 or a later 1.x release, and `GetStatistics` supports only the reviewed 1.5.0–1.5.7 structure layout.
+The build must be libsrt 1.5 or a later 1.x release, and `GetStatistics` supports only libsrt 1.5.0 through the release bundled with your Srt.NET version. Newer releases are rejected because their structure layout has not been checked; see [statistics](statistics.md).

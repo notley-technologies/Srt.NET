@@ -29,4 +29,8 @@
     <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" PrivateAssets="all" Condition="'$(TargetFramework)' == 'net48'" />
     <ProjectReference Include="../../src/Srt.NET/Srt.NET.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <!-- The native ABI contract that AbiTests checks the managed declarations against. -->
+    <None Include="../../native/abi/managed_abi.c" Link="managed_abi.c" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
 </Project>

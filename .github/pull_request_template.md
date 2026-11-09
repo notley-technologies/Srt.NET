@@ -13,5 +13,5 @@
 - [ ] Public API changes are recorded in `src/Srt.NET/PublicAPI/<target framework>/PublicAPI.Unshipped.txt` for every target framework, and no optional parameters were added to shipped methods.
 - [ ] `CHANGELOG.md` has an entry under `[Unreleased]` for user-visible changes.
 - [ ] Documentation (`README.md`, the package readme `src/Srt.NET/PACKAGE.md`, `docs/`, XML comments) is updated.
-- [ ] Native changes only: `native/versions.json`, the dependency notices, and the native version test are updated, and the full CI matrix passed.
+- [ ] Native changes only: libsrt and OpenSSL pins are changed with `native/cmake/UpdateLibsrt.cmake` or `native/cmake/UpdateOpenSSL.cmake`, and the full CI matrix passed.
 - [ ] Workflow changes only: actions are pinned to full commit SHAs with a version comment, and actionlint passes.

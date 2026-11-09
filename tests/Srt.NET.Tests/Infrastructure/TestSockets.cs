@@ -5,7 +5,9 @@
 // Copyright (c) 2026 Noah Davis
 
 using System;
+using System.IO;
 using System.Net;
+using System.Text.RegularExpressions;
 using Srt.Net;
 
 namespace Srt.Net.Tests;
@@ -43,5 +45,15 @@ internal static class TestSockets
             caller.Dispose();
             throw;
         }
+    }
+
+    /// <summary>The libsrt release recorded in the build manifest staged with the native library under test.</summary>
+    /// <remarks>The native build writes <c>srt.build-info.json</c> from <c>native/versions.json</c>, and the test project copies it next to the library.</remarks>
+    internal static Version BundledNativeVersion()
+    {
+        string manifest = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "srt.build-info.json"));
+        Match match = Regex.Match(manifest, "\"srt\"\\s*:\\s*\\{[^}]*\"version\"\\s*:\\s*\"(\\d+\\.\\d+\\.\\d+)\"", RegexOptions.CultureInvariant);
+
+        return match.Success ? Version.Parse(match.Groups[1].Value) : throw new InvalidDataException("srt.build-info.json does not record the libsrt version.");
     }
 }

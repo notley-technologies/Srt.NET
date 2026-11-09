@@ -100,7 +100,7 @@ Build, test, and packaging instructions are in [CONTRIBUTING.md](CONTRIBUTING.md
 
 ## Source and license
 
-The implementation was written against the upstream [libsrt C API](https://github.com/Haivision/srt/blob/v1.5.7/srtcore/srt.h) and [API documentation](https://github.com/Haivision/srt/tree/v1.5.7/docs/API).
+Upstream references for the bundled libsrt release: the [C API](https://github.com/Haivision/srt/blob/v1.5.7/srtcore/srt.h) and the [API documentation](https://github.com/Haivision/srt/tree/v1.5.7/docs/API). The [API coverage audit](docs/api-coverage.md) records what Srt.NET wraps.
 
 Srt.NET is an independent project. It is not affiliated with or endorsed by Haivision or the SRT Alliance; SRT and libsrt are their projects, used here under libsrt's MPL-2.0 license.
 
