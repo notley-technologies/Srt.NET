@@ -141,13 +141,14 @@ if(MSVC)
     #
     # MSVC has no documented option that maps source paths, so __FILE__ in libsrt's logging and OpenSSL's error
     # records still holds the build tree's source paths (/d1trimfile is undocumented and not used). Release builds
-    # write no PDB, so no PDB path is embedded.
+    # write no PDB, so no PDB path is embedded. /Brepro makes the linker write a content hash instead of the current
+    # time into the PE header, so the same sources and build tree give a bit-for-bit identical srt.dll.
     list(APPEND OPENSSL_OPTIONS /guard:cf)
     set(SRT_PLATFORM_ARGS
         "-DCMAKE_PROJECT_SRT_INCLUDE:FILEPATH=${SRT_DLLMAIN_INCLUDE}"
         "-DCMAKE_C_FLAGS_INIT:STRING=/guard:cf"
         "-DCMAKE_CXX_FLAGS_INIT:STRING=/guard:cf"
-        "-DCMAKE_SHARED_LINKER_FLAGS_INIT:STRING=/guard:cf /CETCOMPAT")
+        "-DCMAKE_SHARED_LINKER_FLAGS_INIT:STRING=/guard:cf /CETCOMPAT /Brepro")
 else()
     find_program(OPENSSL_MAKE NAMES gmake make REQUIRED)
     set(OPENSSL_BUILD_COMMAND "${OPENSSL_MAKE}" "-j${SRTNET_BUILD_JOBS}")
@@ -183,10 +184,12 @@ else()
         set(SRT_C_FLAGS "-fvisibility=hidden -ffile-prefix-map=${SRT_SOURCE}=srt")
         set(SRT_CXX_FLAGS "${SRT_C_FLAGS} -fvisibility-inlines-hidden")
         set(SRT_SHARED_LINKER_FLAGS "-Wl,-exported_symbols_list,${SRT_EXPORTED_SYMBOLS} -Wl,-dead_strip")
+        # The *_INIT variables keep the standard CFLAGS, CXXFLAGS and LDFLAGS environment variables working: CMake
+        # combines them with these flags when it first configures libsrt.
         set(SRT_PLATFORM_ARGS
-            "-DCMAKE_C_FLAGS:STRING=${SRT_C_FLAGS}"
-            "-DCMAKE_CXX_FLAGS:STRING=${SRT_CXX_FLAGS}"
-            "-DCMAKE_SHARED_LINKER_FLAGS:STRING=${SRT_SHARED_LINKER_FLAGS}")
+            "-DCMAKE_C_FLAGS_INIT:STRING=${SRT_C_FLAGS}"
+            "-DCMAKE_CXX_FLAGS_INIT:STRING=${SRT_CXX_FLAGS}"
+            "-DCMAKE_SHARED_LINKER_FLAGS_INIT:STRING=${SRT_SHARED_LINKER_FLAGS}")
         set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${SRT_EXPORTED_SYMBOLS}")
     else()
         if(HOST_ARCH STREQUAL "arm64")
@@ -215,10 +218,12 @@ else()
         set(SRT_SHARED_LINKER_FLAGS "-static-libstdc++ -static-libgcc -Wl,--exclude-libs,ALL")
         string(APPEND SRT_SHARED_LINKER_FLAGS " -Wl,--version-script=${SRT_VERSION_SCRIPT} -Wl,--no-undefined")
         string(APPEND SRT_SHARED_LINKER_FLAGS " -Wl,--gc-sections -Wl,-z,relro -Wl,-z,now -Wl,-z,noexecstack")
+        # The *_INIT variables keep the standard CFLAGS, CXXFLAGS and LDFLAGS environment variables working: CMake
+        # combines them with these flags when it first configures libsrt.
         set(SRT_PLATFORM_ARGS
-            "-DCMAKE_C_FLAGS:STRING=${SRT_C_FLAGS}"
-            "-DCMAKE_CXX_FLAGS:STRING=${SRT_CXX_FLAGS}"
-            "-DCMAKE_SHARED_LINKER_FLAGS:STRING=${SRT_SHARED_LINKER_FLAGS}")
+            "-DCMAKE_C_FLAGS_INIT:STRING=${SRT_C_FLAGS}"
+            "-DCMAKE_CXX_FLAGS_INIT:STRING=${SRT_CXX_FLAGS}"
+            "-DCMAKE_SHARED_LINKER_FLAGS_INIT:STRING=${SRT_SHARED_LINKER_FLAGS}")
         set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${SRT_VERSION_SCRIPT}")
     endif()
 endif()

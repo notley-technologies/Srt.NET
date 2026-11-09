@@ -11,6 +11,7 @@ using System.Collections.Generic;
 using System.Diagnostics.Metrics;
 using System.Linq;
 using System.Net;
+using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 using Srt.Net;
@@ -134,6 +135,66 @@ public sealed class MetricsTests : IClassFixture<RuntimeFixture>
         Assert.Empty(metrics.Get("srt.connection.duration"));
     }
 
+    [Fact]
+    public async Task TimedOutAndInterruptedConnectsRecordTheirErrorType()
+    {
+        using MetricsRecorder metrics = new();
+
+        // A peer that never answers keeps the handshake pending until the timeout or until the caller is disposed.
+        using UdpClient silent = new(new IPEndPoint(IPAddress.Loopback, 0));
+        SrtSocket timedOut = new();
+        Assert.Throws<TimeoutException>(() => timedOut.Connect((IPEndPoint)silent.Client.LocalEndPoint!, TimeSpan.Zero));
+
+        SrtSocket interrupted = new();
+        Task connecting = Task.Run(() => interrupted.Connect((IPEndPoint)silent.Client.LocalEndPoint!, Deadline));
+        Assert.True(SpinWait.SpinUntil(() => connecting.IsCompleted || interrupted.AsyncContext?.SendQueue.IsWaiting == true, Deadline));
+        interrupted.Dispose();
+        Assert.Same(connecting, await Task.WhenAny(connecting, Task.Delay(Deadline)));
+        await Assert.ThrowsAsync<ObjectDisposedException>(() => connecting);
+
+        Assert.Equal(
+            ["System.ObjectDisposedException", "timeout"],
+            metrics.Get("srt.connect.duration").Select(item => (string)item.Tags["error.type"]!).Order());
+        Assert.Empty(metrics.Get("srt.open_connections"));
+    }
+
+    [Fact]
+    public async Task InstrumentsCanBeEnabledIndividually()
+    {
+        using SrtSocket listener = Listen();
+        using CancellationTokenSource timeout = new(Deadline);
+
+        using (MetricsRecorder openOnly = new("srt.open_connections"))
+        {
+            (SrtSocket caller, SrtSocket peer) = await ConnectAsync(listener, timeout.Token);
+            Assert.Empty(openOnly.Get("srt.connect.duration"));
+            Assert.Equal(1, openOnly.Sum("srt.open_connections", "caller"));
+            peer.Dispose();
+            caller.Dispose();
+            Assert.Equal(0, openOnly.Sum("srt.open_connections", "caller"));
+            Assert.Empty(openOnly.Get("srt.connection.duration"));
+        }
+
+        using (MetricsRecorder connectOnly = new("srt.connect.duration"))
+        {
+            (SrtSocket caller, SrtSocket peer) = await ConnectAsync(listener, timeout.Token);
+            Assert.Equal("caller", Assert.Single(connectOnly.Get("srt.connect.duration")).Tags[Role]);
+            peer.Dispose();
+            caller.Dispose();
+            Assert.Empty(connectOnly.Get("srt.open_connections"));
+            Assert.Empty(connectOnly.Get("srt.connection.duration"));
+        }
+    }
+
+    private static async Task<(SrtSocket Caller, SrtSocket Peer)> ConnectAsync(SrtSocket listener, CancellationToken cancellationToken)
+    {
+        Task<SrtSocket> accepting = listener.AcceptAsync(cancellationToken).AsTask();
+        SrtSocket caller = new();
+        await caller.ConnectAsync(listener.LocalEndPoint, cancellationToken);
+
+        return (caller, await accepting);
+    }
+
     private static SrtSocket Listen()
     {
         SrtSocket listener = new();
@@ -150,11 +211,11 @@ public sealed class MetricsTests : IClassFixture<RuntimeFixture>
         private readonly MeterListener listener = new();
         private readonly ConcurrentQueue<RecordedMeasurement> measurements = new();
 
-        internal MetricsRecorder()
+        internal MetricsRecorder(string? only = null)
         {
             listener.InstrumentPublished = (instrument, owner) =>
             {
-                if (instrument.Meter.Name == "Srt.Net")
+                if (instrument.Meter.Name == "Srt.Net" && (only == null || instrument.Name == only))
                 {
                     owner.EnableMeasurementEvents(instrument);
                 }

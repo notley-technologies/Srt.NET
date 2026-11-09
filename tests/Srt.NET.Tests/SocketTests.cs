@@ -7,6 +7,7 @@
 using System;
 using System.Linq;
 using System.Net;
+using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -256,6 +257,127 @@ public sealed class SocketTests : IClassFixture<RuntimeFixture>
         Assert.Equal(SrtErrorCode.ConnectionRejected, error.SrtErrorCode);
         Assert.Equal(SrtRejectReason.BadSecret, error.RejectionReason);
         Assert.Equal(SrtSocketState.Closed, caller.State);
+    }
+
+    [Fact]
+    public void ListenAndAdmissionSetupValidateTheirPreconditions()
+    {
+        using SrtSocket listener = new();
+        Assert.Throws<ArgumentNullException>("endpoint", () => listener.Bind(null!));
+        Assert.Throws<ArgumentOutOfRangeException>("backlog", () => listener.Listen(0));
+
+        // libsrt refuses to listen on a socket that is not bound.
+        Assert.Throws<SrtException>(() => listener.Listen());
+
+        listener.Bind(new(IPAddress.Loopback, 0));
+        listener.Listen();
+        Assert.Equal(SrtSocketState.Listening, listener.State);
+        Assert.Throws<InvalidOperationException>(() => listener.SetConnectionHandler(_ => true));
+    }
+
+    [Fact]
+    public void ZeroTimeoutsFailFastWhenNothingIsReady()
+    {
+        using SrtSocket listener = new();
+        listener.Bind(new(IPAddress.Loopback, 0));
+        listener.Listen();
+        Assert.Throws<TimeoutException>(() => listener.Accept(TimeSpan.Zero));
+        Assert.Equal(SrtSocketState.Listening, listener.State);
+
+        using ConnectionPair pair = Connect();
+        byte[] buffer = new byte[1500];
+        Assert.Throws<TimeoutException>(() => pair.Peer.Receive(buffer, TimeSpan.Zero));
+        Assert.Throws<TimeoutException>(() => pair.Peer.ReceiveMessage(buffer, TimeSpan.Zero));
+        pair.Caller.Send([9], Deadline);
+        Assert.Equal(1, pair.Peer.Receive(buffer, Deadline));
+        Assert.Equal(9, buffer[0]);
+    }
+
+    [Fact]
+    public void AZeroTimeoutConnectFailsAndDisposesTheCaller()
+    {
+        // A peer that never answers, so the handshake cannot complete.
+        using UdpClient silent = new(new IPEndPoint(IPAddress.Loopback, 0));
+        using SrtSocket caller = new();
+        Assert.Throws<TimeoutException>(() => caller.Connect((IPEndPoint)silent.Client.LocalEndPoint!, TimeSpan.Zero));
+        Assert.Equal(SrtSocketState.Closed, caller.State);
+        Assert.Throws<ObjectDisposedException>(() => caller.Send([1]));
+    }
+
+    [Fact]
+    public async Task AcceptWaitsForAConnectionThatArrivesLater()
+    {
+        using SrtSocket listener = new();
+        listener.Bind(new(IPAddress.Loopback, 0));
+        listener.Listen();
+        Task<SrtSocket> accepting = Task.Run(() => listener.Accept(Deadline));
+
+        // Connect only once Accept is blocked, so it must be woken by the connection's readiness edge.
+        Assert.True(SpinWait.SpinUntil(() => accepting.IsCompleted || listener.AsyncContext?.ReceiveQueue.IsWaiting == true, Deadline));
+        Assert.False(accepting.IsCompleted);
+
+        using SrtSocket caller = new();
+        caller.Connect(listener.LocalEndPoint, Deadline);
+        await AssertCompletes(accepting);
+        using SrtSocket peer = await accepting;
+        Assert.Equal(caller.LocalEndPoint, peer.RemoteEndPoint);
+        Assert.Equal(SrtSocketState.Connected, peer.State);
+    }
+
+    [Fact]
+    public void ConnectingAListeningSocketFailsAndDisposesIt()
+    {
+        using SrtSocket target = new();
+        target.Bind(new(IPAddress.Loopback, 0));
+        target.Listen();
+
+        SrtSocket listener = new();
+        listener.Bind(new(IPAddress.Loopback, 0));
+        listener.Listen();
+        Assert.Throws<SrtException>(() => listener.BeginConnect(target.LocalEndPoint));
+        Assert.Equal(SrtSocketState.Closed, listener.State);
+    }
+
+    [Fact]
+    public async Task ConnectAsyncOnAListeningSocketFaultsAndDisposesIt()
+    {
+        using SrtSocket target = new();
+        target.Bind(new(IPAddress.Loopback, 0));
+        target.Listen();
+
+        SrtSocket listener = new();
+        listener.Bind(new(IPAddress.Loopback, 0));
+        listener.Listen();
+        ValueTask connecting = listener.ConnectAsync(target.LocalEndPoint);
+        Assert.True(connecting.IsCompleted);
+        await Assert.ThrowsAsync<SrtException>(async () => await connecting);
+        Assert.Equal(SrtSocketState.Closed, listener.State);
+    }
+
+    [Fact]
+    public void RejectsNegativeMessageSourceTimes()
+    {
+        using ConnectionPair pair = Connect();
+        SrtMessageOptions options = new()
+        {
+            SourceTimeMicroseconds = -1
+        };
+        Assert.Throws<ArgumentOutOfRangeException>("options", () => pair.Caller.SendMessage([1], options, Deadline));
+        Assert.Throws<ArgumentOutOfRangeException>("options", () => pair.Caller.SendMessageAsync(new byte[] { 1 }, options));
+    }
+
+    [Fact]
+    public void FailuresOnABrokenConnectionNameTheOperation()
+    {
+        using ConnectionPair pair = Connect();
+        pair.Caller.Dispose();
+        Assert.True(SpinWait.SpinUntil(() => pair.Peer.State != SrtSocketState.Connected, Deadline));
+        byte[] buffer = new byte[1500];
+
+        Assert.Contains("send SRT data", Assert.Throws<SrtException>(() => pair.Peer.Send([1], Deadline)).Message, StringComparison.Ordinal);
+        Assert.Contains("send an SRT message", Assert.Throws<SrtException>(() => pair.Peer.SendMessage([1], timeout: Deadline)).Message, StringComparison.Ordinal);
+        Assert.Contains("receive an SRT message", Assert.Throws<SrtException>(() => pair.Peer.ReceiveMessage(buffer, Deadline)).Message, StringComparison.Ordinal);
+        Assert.Contains("receive SRT data", Assert.Throws<SrtException>(() => pair.Peer.Receive(buffer, Deadline)).Message, StringComparison.Ordinal);
     }
 
     private static async Task AssertCompletes(Task task)

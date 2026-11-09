@@ -4,6 +4,10 @@
 
 Only the latest minor release line receives security fixes; upgrade to its newest patch release. Before 1.0, fixes are not backported to older lines.
 
+## Security model
+
+[docs/security.md](docs/security.md) describes what Srt.NET's security does and does not provide (including the limits of SRT encryption: payloads are confidential but not integrity-protected), its threat model and trust boundaries, and the assurance case for its security requirements.
+
 ## Reporting a vulnerability
 
 Report vulnerabilities privately through GitHub: <https://github.com/notley-technologies/Srt.NET/security/advisories/new> (the repository's **Security** tab, then **Report a vulnerability**).
