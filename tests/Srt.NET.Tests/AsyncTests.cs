@@ -141,9 +141,92 @@ public sealed class AsyncTests : IClassFixture<RuntimeFixture>
         await Assert.ThrowsAnyAsync<OperationCanceledException>(async () => await pair.Peer.ReceiveAsync(new byte[1500], cancel.Token));
         await Assert.ThrowsAnyAsync<OperationCanceledException>(async () => await pair.Caller.SendAsync(new byte[] { 1 }, cancel.Token));
 
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(async () => await pair.Peer.ReceiveMessageAsync(new byte[1500], cancel.Token));
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(async () => await pair.Caller.SendMessageAsync(new byte[] { 1 }, cancellationToken: cancel.Token));
+
         using SrtSocket untouched = new();
         await Assert.ThrowsAnyAsync<OperationCanceledException>(async () => await untouched.ConnectAsync(new(IPAddress.Loopback, 9), cancel.Token));
         Assert.Equal(SrtSocketState.Initialized, untouched.State);
+
+        using SrtSocket listener = new();
+        listener.Bind(new(IPAddress.Loopback, 0));
+        listener.Listen();
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(async () => await listener.AcceptAsync(cancel.Token));
+        Assert.Equal(SrtSocketState.Listening, listener.State);
+
+        // Nothing was started, so the connection still carries data in both directions.
+        pair.Caller.Send([3], Deadline);
+        byte[] received = new byte[1500];
+        Assert.Equal(1, pair.Peer.Receive(received, Deadline));
+        Assert.Equal(3, received[0]);
+    }
+
+    [Fact]
+    public async Task AnEngineFaultFailsPendingAndLaterOperationsWithTheCause()
+    {
+        using ConnectionPair pair = TestSockets.Connect();
+        using CancellationTokenSource timeout = new(Deadline);
+        ValueTask<int> pending = pair.Peer.ReceiveAsync(new byte[1500], timeout.Token);
+        Assert.False(pending.IsCompleted);
+
+        // The engine aborts a socket with the defect when its event handling throws; simulate that defect.
+        InvalidOperationException defect = new("Simulated engine defect");
+        pair.Peer.AsyncContext!.Abort(defect);
+
+        InvalidOperationException ended = await Assert.ThrowsAsync<InvalidOperationException>(async () => await pending);
+        Assert.Same(defect, ended.InnerException);
+        InvalidOperationException later = await Assert.ThrowsAsync<InvalidOperationException>(async () => await pair.Peer.ReceiveAsync(new byte[1500], timeout.Token));
+        Assert.Same(defect, later.InnerException);
+        InvalidOperationException blocking = Assert.Throws<InvalidOperationException>(() => pair.Peer.Receive(new byte[1500], Deadline));
+        Assert.Same(defect, blocking.InnerException);
+
+        // The other socket of the connection is unaffected.
+        Assert.Equal(SrtSocketState.Connected, pair.Caller.State);
+    }
+
+    [Fact]
+    public async Task ATimedOutReceiveQueuedBehindAnotherLeavesTheEarlierOneWaiting()
+    {
+        using ConnectionPair pair = TestSockets.Connect();
+        using CancellationTokenSource timeout = new(Deadline);
+        byte[] first = new byte[1500];
+        ValueTask<int> queued = pair.Peer.ReceiveAsync(first, timeout.Token);
+        Assert.False(queued.IsCompleted);
+
+        // The synchronous receive waits behind the asynchronous one and gives up first.
+        Assert.Throws<TimeoutException>(() => pair.Peer.Receive(new byte[1500], TimeSpan.FromMilliseconds(50)));
+        Assert.False(queued.IsCompleted);
+
+        pair.Caller.Send([5], Deadline);
+        Assert.Equal(1, await queued);
+        Assert.Equal(5, first[0]);
+
+        // The queue is idle again, so the next receive also completes.
+        pair.Caller.Send([6], Deadline);
+        Assert.Equal(1, pair.Peer.Receive(first, Deadline));
+        Assert.Equal(6, first[0]);
+    }
+
+    [Fact]
+    public async Task CancelingTheFirstQueuedReceiveHandsTheQueueToTheNext()
+    {
+        using ConnectionPair pair = TestSockets.Connect();
+        using CancellationTokenSource timeout = new(Deadline);
+        using CancellationTokenSource cancel = new();
+        Task<int> blocking = Task.Run(() => pair.Peer.Receive(new byte[1500], Deadline, cancel.Token));
+        Assert.True(SpinWait.SpinUntil(() => blocking.IsCompleted || pair.Peer.AsyncContext?.ReceiveQueue.IsWaiting == true, Deadline));
+        Assert.False(blocking.IsCompleted);
+
+        byte[] second = new byte[1500];
+        ValueTask<int> queued = pair.Peer.ReceiveAsync(second, timeout.Token);
+        Assert.False(queued.IsCompleted);
+        cancel.Cancel();
+        Assert.Same(blocking, await Task.WhenAny(blocking, Task.Delay(Deadline)));
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => blocking);
+
+        pair.Caller.Send([8], Deadline);
+        Assert.Equal(1, await queued);
+        Assert.Equal(8, second[0]);
     }
 
     [Fact]

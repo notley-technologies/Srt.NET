@@ -96,7 +96,7 @@ Releases are built from source by the [CI workflow](.github/workflows/build.yml)
 
 ## Contributing
 
-Build, test, and packaging instructions are in [CONTRIBUTING.md](CONTRIBUTING.md), and the native build is described in [native/README.md](native/README.md). Report vulnerabilities privately as described in [SECURITY.md](SECURITY.md). Changes are recorded in [CHANGELOG.md](CHANGELOG.md).
+Build, test, and packaging instructions are in [CONTRIBUTING.md](CONTRIBUTING.md); [GOVERNANCE.md](GOVERNANCE.md) describes how the project is run, [ROADMAP.md](ROADMAP.md) its plans, and [docs/architecture.md](docs/architecture.md) its design. [docs/security.md](docs/security.md) describes what you can and cannot expect from Srt.NET's security, including the limits of SRT encryption. and the native build is described in [native/README.md](native/README.md). Report vulnerabilities privately as described in [SECURITY.md](SECURITY.md). Changes are recorded in [CHANGELOG.md](CHANGELOG.md).
 
 ## Source and license
 

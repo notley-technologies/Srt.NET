@@ -21,6 +21,10 @@ Srt.NET is licensed under the [Mozilla Public License 2.0](LICENSE.txt). Bundled
 
 - Do not copy code under licenses that are incompatible with MPL-2.0. Open an issue before starting significant work.
 
+## Finding something to work on
+
+Issues labelled [good first issue](https://github.com/notley-technologies/Srt.NET/labels/good%20first%20issue) are small, self-contained tasks with a clear definition of done, suitable for a first contribution. [ROADMAP.md](ROADMAP.md) lists the larger plans; comment on an issue before starting so that work is not duplicated.
+
 ## Reporting bugs and security issues
 
 Use the issue forms for bugs and feature requests. Report vulnerabilities privately as described in [SECURITY.md](SECURITY.md), never in a public issue.
@@ -175,6 +179,19 @@ libsrt and OpenSSL are pinned in `native/versions.json`, which Dependabot cannot
 Build container images are pinned by digest in `native/docker/`. Dependabot proposes digest refreshes and manylinux date tags, and each update rebuilds the Linux runtimes. Moving to a new .NET major or minor version or a new Alpine branch is excluded in `.github/dependabot.yml` and done by hand, together with `global.json`, the test target frameworks, and the musl baseline in the README.
 
 The netstandard2.0 dependency minimums (Microsoft.Bcl.AsyncInterfaces 8.0.0 and System.Memory 4.5.5) are set with `VersionOverride` in `src/Srt.NET/Srt.NET.csproj`, and Dependabot ignores both packages. Raise them only on purpose, with a CHANGELOG entry. Their central versions in `Directory.Packages.props` only pin what tests and tools resolve, and are updated by hand.
+
+## Code review
+
+Every change reaches `main` through a pull request. Reviewers check, and authors should check before asking for review:
+
+- **Correctness:** the change does what it says, including error paths, cancellation, disposal and concurrent use; native calls match the libsrt 1.5.7 C API and its threading rules.
+- **Tests:** behaviour changes come with tests that make real libsrt calls and would fail without the change; timing-sensitive tests bound their waits and do not depend on scheduling luck.
+- **Security:** inputs from the network, libsrt and callers are validated; native memory is accessed only through bounded, pinned buffers and socket leases; secrets are not logged; the [security model](docs/security.md) still holds.
+- **Compatibility:** public API changes are recorded in the PublicAPI files, and shipped signatures are not broken; package, platform and dependency changes keep the package tests passing.
+- **Documentation:** README, the package readme, `docs/` and XML comments describe the new behaviour, and the CHANGELOG has an entry for user-visible changes.
+- **Supply chain:** new dependencies, actions and images are pinned, licensed compatibly with MPL-2.0, and justified.
+
+Reviewers approve only when every point holds, and leave comments for anything that does not. The [governance](GOVERNANCE.md) page describes who can approve.
 
 ## Code conventions
 

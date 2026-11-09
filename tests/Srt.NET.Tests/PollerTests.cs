@@ -8,6 +8,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Linq;
 using System.Net;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Srt.Net;
@@ -197,5 +198,52 @@ public sealed class PollerTests : IClassFixture<RuntimeFixture>
         Assert.Same(pair.Caller, closed.Socket);
         Assert.Equal(SrtPollEvents.Closed, closed.Events);
         Assert.Empty(poller.Wait(TimeSpan.Zero));
+    }
+
+    [Fact]
+    public void RejectsNullDuplicateAndUnknownSockets()
+    {
+        using SrtSocket registered = new();
+        using SrtSocket unknown = new();
+        using SrtPoller poller = new();
+        Assert.Throws<ArgumentNullException>("socket", () => poller.Add(null!, SrtPollEvents.Read));
+        poller.Add(registered, SrtPollEvents.Read);
+        Assert.Throws<InvalidOperationException>(() => poller.Add(registered, SrtPollEvents.Write));
+        Assert.Throws<ArgumentNullException>("socket", () => poller.Update(null!, SrtPollEvents.Read));
+        Assert.Throws<ArgumentException>("socket", () => poller.Update(unknown, SrtPollEvents.Read));
+        Assert.Throws<ArgumentException>("socket", () => poller.Remove(unknown));
+
+        // The failed calls leave the registration intact: it can still be updated and removed once.
+        poller.Update(registered, SrtPollEvents.Write);
+        poller.Remove(registered);
+        Assert.Throws<ArgumentException>("socket", () => poller.Remove(registered));
+    }
+
+    [Fact]
+    public void AnAbandonedPollerIsFinalizedWithoutAffectingItsSockets()
+    {
+        using ConnectionPair pair = TestSockets.Connect();
+        WeakReference abandoned = Abandon(pair.Peer);
+
+        for (int attempt = 0; attempt < 20 && abandoned.IsAlive; attempt++)
+        {
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+        }
+
+        Assert.False(abandoned.IsAlive);
+        pair.Caller.Send([1], TestSockets.Deadline);
+        byte[] received = new byte[1500];
+        Assert.Equal(1, pair.Peer.Receive(received, TestSockets.Deadline));
+        Assert.Equal(SrtSocketState.Connected, pair.Peer.State);
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static WeakReference Abandon(SrtSocket socket)
+    {
+        SrtPoller poller = new();
+        poller.Add(socket, SrtPollEvents.Read);
+
+        return new(poller);
     }
 }
