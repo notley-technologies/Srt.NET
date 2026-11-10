@@ -7,7 +7,7 @@
 # Portability gate for Linux libsrt.so builds, included by StageNative.cmake.
 #
 # verify_elf(<binary> <rid> <readelf> <libc-variable>) fails the build unless the library:
-#   - is a 64-bit shared object for the runtime's architecture;
+#   - is a 64-bit little-endian shared object for the runtime's architecture;
 #   - needs only the C library of its runtime (glibc: libc, libm, libpthread, libdl, librt and the dynamic
 #     loader; musl: libc.musl-<arch>) and, for glibc, symbol versions no newer than SRTNET_GLIBC_BASELINE;
 #   - needs no libstdc++ or libgcc_s symbol versions (both runtimes must be linked statically);
@@ -54,9 +54,10 @@ function(verify_elf BINARY RID READELF LIBC_VARIABLE)
     set(ERRORS "")
 
     if(NOT file_header MATCHES "Class:[ \t]+ELF64"
+       OR NOT file_header MATCHES "Data:[^\n]*little endian"
        OR NOT file_header MATCHES "Type:[ \t]+DYN "
        OR NOT file_header MATCHES "Machine:[ \t]+${EXPECTED_MACHINE}\n")
-        list(APPEND ERRORS "not a 64-bit ${EXPECTED_MACHINE} shared object")
+        list(APPEND ERRORS "not a 64-bit little-endian ${EXPECTED_MACHINE} shared object")
     endif()
 
     # Shared library dependencies.

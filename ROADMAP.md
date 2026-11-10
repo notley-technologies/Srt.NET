@@ -23,5 +23,5 @@ This is the maintainers' plan for roughly the next year (through late 2027). It 
 ## Project health
 
 - Add a second maintainer and a second owner of the GitHub and nuget.org organizations, so that every change gets a second reviewer and the project does not depend on one person.
-- Raise test coverage to at least 90% of statements and 80% of branches, and keep it there.
+- Keep test coverage at or above 90% of statements and 80% of branches (currently about 91% of lines and 85% of branches).
 - Replace the `macos-15-intel` CI runner before GitHub retires it.

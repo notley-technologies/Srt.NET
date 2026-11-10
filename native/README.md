@@ -1,6 +1,6 @@
 # Native build
 
-This folder builds libsrt with a statically linked OpenSSL for every Srt.NET runtime and stages the result in `artifacts/`. [CONTRIBUTING.md](../CONTRIBUTING.md) has the build commands; this page explains what the build guarantees and how to maintain it.
+This folder builds libsrt with a statically linked OpenSSL for every Srt.NET runtime and stages the result in `artifacts/`. [CONTRIBUTING.md](../CONTRIBUTING.md) has the build commands and [MAINTAINING.md](../MAINTAINING.md#native-dependency-updates) the dependency updates; this page explains what the build guarantees and how to maintain it.
 
 | Path | Purpose |
 | --- | --- |
@@ -8,11 +8,11 @@ This folder builds libsrt with a statically linked OpenSSL for every Srt.NET run
 | `openssl-release-key.asc` | OpenSSL release-signing key used to verify the downloaded archive |
 | `CMakeLists.txt` | Builds OpenSSL, then libsrt, then runs `cmake/StageNative.cmake` |
 | `build-linux.sh`, `build-macos.sh`, `build-windows.cmd` | Complete build recipes per operating system, used by CI and contributors |
-| `cmake/StageNative.cmake` | Checks the sources, verifies and copies the library, writes the manifest, notices and SBOM |
+| `cmake/StageNative.cmake` | Checks the sources, sets the macOS install name and signature, verifies and copies the library, writes the manifest, notices and SBOM |
 | `cmake/VerifyElf.cmake`, `cmake/VerifyMachO.cmake` | Portability gates for Linux and macOS libraries |
 | `cmake/NativeSbom.cmake`, `cmake/CollectNotices.cmake` | SPDX 2.2 document and dependency notices for the staged library |
 | `abi/managed_abi.c` | The libsrt structure layouts and constants that Srt.NET's managed declarations rely on, compiled against the bundled headers |
-| `cmake/UpdateLibsrt.cmake`, `cmake/UpdateOpenSSL.cmake`, `cmake/VerifyOpenSSL.cmake`, `cmake/UpdateFiles.cmake` | Dependency updates: pin a libsrt release by its tag's commit, or a signature-verified OpenSSL release, and update `versions.json`, the notices, `SECURITY.md`, the CHANGELOG and, for libsrt, the statistics version check and upstream links |
+| `cmake/UpdateLibsrt.cmake`, `cmake/UpdateOpenSSL.cmake`, `cmake/VerifyOpenSSL.cmake`, `cmake/UpdateFiles.cmake` | Dependency updates: pin a libsrt release by its tag's commit, or a signature-verified OpenSSL release, and update `versions.json`, the notices and, for libsrt, the statistics version check and upstream links |
 | `linux/libsrt.map` | Linux version script: exports only `srt_*` |
 | `macos/libsrt.exp` | macOS exported symbols list: exports only `_srt_*` |
 | `windows/` | `DllMain` for `srt.dll` that frees OpenSSL's per-thread state (added to libsrt's build without patching it), and `PrepareWindows.cmake`, which downloads the pinned Perl and NASM |
@@ -47,7 +47,7 @@ CMake detects musl from the compiler's target triple, and the requested runtime 
 
 `cmake/VerifyElf.cmake` inspects the library with `readelf` before staging, and the build fails unless the library:
 
-- is a 64-bit shared object for the runtime's architecture;
+- is a 64-bit little-endian shared object for the runtime's architecture;
 - needs only `libc.so.6`, `libm.so.6`, `libpthread.so.0`, `libdl.so.2`, `librt.so.1` and the dynamic loader (glibc), or only `libc.musl-<arch>.so.1` (musl), including that runtime's C library;
 - needs no glibc symbol version newer than 2.28, and no `GLIBCXX`, `CXXABI` or `GCC` versions;
 - imports no unversioned global symbols from glibc;
@@ -58,15 +58,18 @@ OpenSSL and libsrt are compiled with `-fstack-protector-strong` and `_FORTIFY_SO
 
 ## macOS portability gate
 
-`VerifyMachO.cmake` inspects the library with `otool`, `nm` and `lipo` before staging, and the build fails unless the library:
+`StageNative.cmake` first sets the library's install name (`install_name_tool -id`) and signs it ad hoc again, in a copy in the native build tree's `stage/` folder. `VerifyMachO.cmake` then inspects that final file with `otool`, `nm` and `lipo` before it is copied to `artifacts/runtimes/`, and the build fails unless the library:
 
 - is a thin 64-bit dynamic library for the runtime's architecture (`x86_64` or `arm64`);
+- has the install name `@rpath/libsrt.dylib`;
 - loads only `/usr/lib/libc++.1.dylib` and `/usr/lib/libSystem.B.dylib`;
 - has no `LC_RPATH` entries;
 - requires macOS 13.0 or earlier (`LC_BUILD_VERSION` minos);
 - exports only `_srt_*` symbols.
 
-libsrt is compiled with hidden visibility and a file-prefix map, and linked with `-dead_strip` and `libsrt.exp`. `Srt.NET.PackageValidation verify-package` applies the same dependency, run-path, minimum version and export rules to the packed library with its own Mach-O reader.
+libsrt is compiled with hidden visibility and a file-prefix map, and linked with `-dead_strip` and `libsrt.exp`.
+
+Neither portability gate checks that every function Srt.NET calls is exported; `NativeExportTests` in `tests/Srt.NET.Tests` checks that at run time on every runtime's CI leg.
 
 ## Reproducibility
 

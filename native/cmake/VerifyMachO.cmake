@@ -8,6 +8,7 @@
 #
 # verify_macho(<binary> <rid>) fails the build unless the library:
 #   - is a thin dynamic library for the runtime's architecture (arm64 or x86_64);
+#   - has the install name SRTNET_MACOS_INSTALL_NAME, which StageNative.cmake sets before it runs this gate;
 #   - loads only /usr/lib/libc++.1.dylib and /usr/lib/libSystem.B.dylib (OpenSSL is linked statically);
 #   - has no LC_RPATH, so it cannot search other directories for libraries;
 #   - targets macOS SRTNET_MACOS_BASELINE or earlier (LC_BUILD_VERSION minos, or LC_VERSION_MIN_MACOSX);
@@ -15,6 +16,7 @@
 # It uses otool, nm and lipo from the Xcode command line tools.
 
 set(SRTNET_MACOS_BASELINE 13.0)
+set(SRTNET_MACOS_INSTALL_NAME "@rpath/libsrt.dylib")
 
 function(verify_macho BINARY RID)
     if(RID STREQUAL "osx-arm64")
@@ -44,6 +46,15 @@ function(verify_macho BINARY RID)
 
     if(NOT HEADER MATCHES "MH_MAGIC_64[^\n]* DYLIB ")
         list(APPEND ERRORS "is not a 64-bit Mach-O dynamic library")
+    endif()
+
+    # otool -D prints "<file>:" and then the LC_ID_DYLIB install name, if there is one.
+    execute_process(COMMAND "${OTOOL_EXECUTABLE}" -D "${BINARY}"
+        OUTPUT_VARIABLE INSTALL_NAME OUTPUT_STRIP_TRAILING_WHITESPACE COMMAND_ERROR_IS_FATAL ANY)
+    string(REGEX REPLACE "^[^\n]*:\n?" "" INSTALL_NAME "${INSTALL_NAME}")
+
+    if(NOT INSTALL_NAME STREQUAL SRTNET_MACOS_INSTALL_NAME)
+        list(APPEND ERRORS "has the install name '${INSTALL_NAME}' instead of ${SRTNET_MACOS_INSTALL_NAME}")
     endif()
 
     # otool -l prints each load command as "cmd <name>" followed by indented "<field> <value>" lines.

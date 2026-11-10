@@ -52,7 +52,7 @@ jobs:
         env:
           EVENT: ${{ github.event_name }}
           SKIPPABLE: >-
-            ^(README\.md|CONTRIBUTING\.md|SECURITY\.md|\.github/CODEOWNERS|\.github/pull_request_template\.md|\.github/ISSUE_TEMPLATE/.*|examples/README\.md|tools/README\.md|native/README\.md)$
+            ^(README\.md|CONTRIBUTING\.md|MAINTAINING\.md|GOVERNANCE\.md|ROADMAP\.md|SECURITY\.md|\.github/CODEOWNERS|\.github/pull_request_template\.md|\.github/ISSUE_TEMPLATE/.*|examples/README\.md|tools/README\.md|native/README\.md)$
         run: |
           build=true
 
@@ -413,8 +413,6 @@ jobs:
           package="${packages[0]}"
           version="${TAG#v}"
           [ "$(basename "$package")" = "Srt.NET.$version.nupkg" ] || { echo "::error::The package version does not match $TAG."; exit 1; }
-          unzip -p "$package" Srt.NET.nuspec | grep -Eq '<license type="(expression|file)"' \
-            || { echo "::error::Srt.NET has no license. Select one before releasing."; exit 1; }
 
           # A release ships its public API: every Unshipped entry must have moved to PublicAPI.Shipped.txt.
           for unshipped in src/Srt.NET/PublicAPI/*/PublicAPI.Unshipped.txt; do

@@ -4,11 +4,10 @@
 #
 # Copyright (c) 2026 Noah Davis
 
-# Pins a libsrt release: resolves its vX.Y.Z tag to the immutable commit and updates the files that name the bundled
-# release (native/versions.json, THIRD_PARTY_NOTICES.md, SECURITY.md, the upstream links in README.md and
-# docs/statistics.md, the statistics version check in NativeAbi.cs, and CHANGELOG.md). The native build then compiles
-# native/abi/managed_abi.c against the new headers, so a release that changes a checked layout or constant fails the
-# build instead of being bundled.
+# Pins a libsrt release: resolves its vX.Y.Z tag to the immutable commit and updates native/versions.json,
+# THIRD_PARTY_NOTICES.md, the upstream links in README.md and docs/statistics.md, and the statistics version check in
+# src/Srt.NET/Interop/NativeAbi.cs. The native build then compiles native/abi/managed_abi.c against the new headers,
+# so a release that changes a checked layout or constant fails the build instead of being bundled.
 #
 #   cmake -DSRT_VERSION=1.5.8 -P native/cmake/UpdateLibsrt.cmake
 
@@ -69,16 +68,13 @@ endif()
 
 # Every edit is made in memory first, so a file whose wording changed stops the update before anything is written.
 file(READ "${ROOT}/THIRD_PARTY_NOTICES.md" NOTICES)
-file(READ "${ROOT}/SECURITY.md" SECURITY)
 file(READ "${ROOT}/README.md" README)
 file(READ "${ROOT}/docs/statistics.md" STATISTICS)
 file(READ "${ROOT}/src/Srt.NET/Interop/NativeAbi.cs" ABI)
-file(READ "${ROOT}/CHANGELOG.md" CHANGELOG)
 
 srtnet_replace_once(NOTICES THIRD_PARTY_NOTICES.md "| Haivision libsrt | ${OLD_VERSION} |" "| Haivision libsrt | ${SRT_VERSION} |")
 srtnet_replace_once(NOTICES THIRD_PARTY_NOTICES.md
     "https://github.com/Haivision/srt/tree/${OLD_COMMIT}" "https://github.com/Haivision/srt/tree/${NEW_COMMIT}")
-srtnet_replace_once(SECURITY SECURITY.md "| Haivision libsrt | ${OLD_VERSION} |" "| Haivision libsrt | ${SRT_VERSION} |")
 srtnet_replace_all(README README.md "github.com/Haivision/srt/blob/v${OLD_VERSION}/" "github.com/Haivision/srt/blob/v${SRT_VERSION}/")
 srtnet_replace_all(README README.md "github.com/Haivision/srt/tree/v${OLD_VERSION}/" "github.com/Haivision/srt/tree/v${SRT_VERSION}/")
 srtnet_replace_all(STATISTICS docs/statistics.md
@@ -89,21 +85,13 @@ srtnet_replace_once(ABI src/Srt.NET/Interop/NativeAbi.cs
     "internal static readonly Version VerifiedVersion = ${OLD_ABI_VERSION};"
     "internal static readonly Version VerifiedVersion = ${NEW_ABI_VERSION};")
 
-srtnet_changelog(CHANGELOG libsrt "${OLD_VERSION}" "${SRT_VERSION}"
-    "Bundles libsrt ${OLD_VERSION} (commit `${OLD_COMMIT}`)"
-    "Bundles libsrt ${SRT_VERSION} (commit `${NEW_COMMIT}`)"
-    " (commit `${OLD_COMMIT}`); see the [libsrt ${OLD_VERSION} release notes](https://github.com/Haivision/srt/releases/tag/v${OLD_VERSION})."
-    " (commit `${NEW_COMMIT}`); see the [libsrt ${SRT_VERSION} release notes](https://github.com/Haivision/srt/releases/tag/v${SRT_VERSION}).")
-
 string(JSON MANIFEST SET "${MANIFEST}" srt version "\"${SRT_VERSION}\"")
 string(JSON MANIFEST SET "${MANIFEST}" srt commit "\"${NEW_COMMIT}\"")
 
 file(WRITE "${ROOT}/THIRD_PARTY_NOTICES.md" "${NOTICES}")
-file(WRITE "${ROOT}/SECURITY.md" "${SECURITY}")
 file(WRITE "${ROOT}/README.md" "${README}")
 file(WRITE "${ROOT}/docs/statistics.md" "${STATISTICS}")
 file(WRITE "${ROOT}/src/Srt.NET/Interop/NativeAbi.cs" "${ABI}")
-file(WRITE "${ROOT}/CHANGELOG.md" "${CHANGELOG}")
 # Last, so an interrupted update leaves the old pin and the next run redoes every edit.
 file(WRITE "${ROOT}/native/versions.json" "${MANIFEST}\n")
 

@@ -1,13 +1,12 @@
 # Build and package-test tools
 
-The native build uses CMake and the upstream C/C++ toolchains, and the Linux runtimes build in pinned containers (see [native/README.md](../native/README.md)). It does not require the .NET SDK. `native/cmake/StageNative.cmake` verifies source inputs, checks Linux libraries against the portability gate, stages the native library and dependency notices, and writes the build manifest (`srt.build-info.json`) and an SPDX document. It also adjusts the macOS library identity and signature. MinVer derives package versions from Git tags. Standard .NET SDK and MSBuild commands compile the managed library and create its NuGet and symbol packages.
+The native build uses CMake and the upstream C/C++ toolchains, and the Linux runtimes build in pinned containers (see [native/README.md](../native/README.md)). It does not require the .NET SDK. `native/cmake/StageNative.cmake` verifies source inputs, sets the macOS library's install name and ad hoc signature, checks Linux and macOS libraries against the portability gates (`VerifyElf.cmake` and `VerifyMachO.cmake`), stages the native library and dependency notices, and writes the build manifest (`srt.build-info.json`) and an SPDX document. MinVer derives package versions from Git tags. Standard .NET SDK and MSBuild commands compile the managed library and create its NuGet and symbol packages.
 
-`Srt.NET.PackageValidation` is a C# command-line tool that validates packages and native libraries. It never builds or stages native libraries or creates a release package. Its commands are:
+`Srt.NET.PackageValidation` is a C# command-line tool that verifies packed packages and installs them into test applications. It never builds or stages native libraries or creates a release package. Its commands are:
 
 ```text
 dotnet run --project tools/Srt.NET.PackageValidation -c Release -- verify-package <package.nupkg> [rid ...]
 dotnet run --project tools/Srt.NET.PackageValidation -c Release -- test-package <package.nupkg> <rid> [--aot]
-dotnet run --project tools/Srt.NET.PackageValidation -c Release -- verify-native <rid> <native library> [Srt.NET.dll]
 ```
 
 The supported runtime identifiers are `win-x64`, `linux-x64`, `linux-arm64`, `linux-musl-x64`, `linux-musl-arm64`, `osx-x64`, and `osx-arm64`.
@@ -16,15 +15,13 @@ The supported runtime identifiers are `win-x64`, `linux-x64`, `linux-arm64`, `li
 
 `verify-package` checks the managed and native assets, dependency versions, hashes, and required notices. With no runtime arguments it requires all seven runtimes, as a release package must; supply runtimes after the package path to check a local partial package. For each runtime it checks:
 
-- The `runtimes/<rid>/native/` folder holds only the library and `srt.build-info.json`. A legacy `build-info.json` is rejected, because copied into an application's output it collides with application files (NETSDK1152).
-- The manifest matches the library's SHA-256, the pinned dependency versions, and the runtime's C library.
-- The binary format and architecture match the runtime: ELF for Linux, PE32+ for Windows, Mach-O for macOS.
-- Linux libraries pass the portability rules: only libc, libm, libpthread, libdl, librt, and the loader (glibc) or the musl libc are needed; no glibc symbol version is newer than 2.28 (none for musl); there are no libstdc++, CXXABI, or libgcc version needs; and only `srt_*` symbols are exported.
-- Every library (Linux and Windows) exports every P/Invoke entry point that the packaged `Srt.NET.dll` assemblies declare. Mach-O exports are not parsed yet; macOS libraries get the header and architecture checks only.
+- The `runtimes/<rid>/native/` folder holds only the library and `srt.build-info.json`.
+- The manifest matches the library's SHA-256, the pinned dependency versions, and the runtime's C library. The native build records that hash after its portability gate passes, so a matching hash shows that the packed library is the staged file that passed the gate.
+- On Windows, `srt.dll` is an x64 PE32+ DLL linked with ASLR, high-entropy ASLR, DEP, Control Flow Guard (`/guard:cf`) and CET shadow stack compatibility (`/CETCOMPAT`). Windows has no build-time gate, so this is the only check of those settings.
+
+Linux and macOS libraries are not inspected again here: `VerifyElf.cmake` and `VerifyMachO.cmake` check them when they are staged (see [native/README.md](../native/README.md)). Exports are checked at run time instead: on every runtime's CI leg, `NativeExportTests` in `tests/Srt.NET.Tests` checks that the staged library exports every P/Invoke entry point that `NativeMethods` declares.
 
 For the package as a whole it checks that the nuspec license expression is `MPL-2.0`, that the readme is `PACKAGE.md`, that its links are absolute `https://` or `#fragment` links (inline, reference-style, and HTML), and that its images come from hosts nuget.org shows. When the package embeds an SBOM (`_manifest/spdx_2.2/manifest.spdx.json`), every file it lists must be in the package.
-
-`verify-native` runs the same binary checks on a loose library, for example right after a native build, and also checks P/Invoke exports when given an `Srt.NET.dll`.
 
 ## Package installation tests
 

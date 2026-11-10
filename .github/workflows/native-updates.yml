@@ -5,13 +5,9 @@
 # Copyright (c) 2026 Noah Davis
 
 # Dependabot cannot see the libsrt and OpenSSL pins in native/versions.json. Every day this workflow compares them with
-# upstream releases and, for each component with a newer release, opens or refreshes a pull request that runs the
-# component's update script (native/cmake/Update*.cmake). The pull request is created with a GitHub App token, so CI
-# runs on it without approval and its commits are signed. Patch releases merge automatically once the required checks
-# pass; a new libsrt minor or major release waits for review. Closing an update pull request declines that release, a
-# branch that someone else pushed to is left alone, and turning off auto-merge on a pull request holds it. If the App is
-# not configured or an update fails, a tracking issue reports it. CONTRIBUTING.md describes the setup ("One-time setup")
-# and the update process ("Updating native dependencies").
+# upstream releases and, for each component with a newer release, runs its update script (native/cmake/Update*.cmake)
+# and opens a pull request with the workflow's GITHUB_TOKEN, so a maintainer approves its CI runs. If the check or an
+# update fails, an issue reports it. See MAINTAINING.md#native-dependency-updates.
 name: Native dependency updates
 
 on:
@@ -22,9 +18,10 @@ on:
 permissions:
   contents: read
 
-concurrency:
-  group: ${{ github.workflow }}
-  cancel-in-progress: false
+concurrency: ${{ github.workflow }}
+
+env:
+  RUN: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
 
 jobs:
   check:
@@ -49,12 +46,10 @@ jobs:
 
           openssl_pinned=$(jq -r .openssl.version native/versions.json)
           srt_pinned=$(jq -r .srt.version native/versions.json)
-          openssl_line="${openssl_pinned%.*}"
           srt_line="${srt_pinned%.*}"
 
-          # OpenSSL: follow only the pinned release line (3.5 is a long-term support line). Release tags are
-          # openssl-X.Y.Z; alpha, beta, and other tags are ignored.
-          openssl_latest=$(git ls-remote --tags --refs https://github.com/openssl/openssl.git "refs/tags/openssl-$openssl_line.*" \
+          # OpenSSL: only openssl-X.Y.Z release tags on the pinned long-term support line; alpha and beta tags are ignored.
+          openssl_latest=$(git ls-remote --tags --refs https://github.com/openssl/openssl.git "refs/tags/openssl-${openssl_pinned%.*}.*" \
             | sed -n "s|.*refs/tags/openssl-\([0-9]*\.[0-9]*\.[0-9]*\)$|\1|p" | sort -V | tail -n 1)
 
           # libsrt: published releases tagged vX.Y.Z. Release candidates are prereleases or bare -rc tags, and
@@ -72,40 +67,28 @@ jobs:
           fi
 
           srt_target="$srt_latest"
-
           if [ -n "$srt_patch" ] && is_newer "$srt_patch" "$srt_pinned"; then
             srt_target="$srt_patch"
           fi
 
-          # One branch per component, and one per libsrt minor line for upgrades that need review, so a patch release
-          # never takes over a pull request that is under review.
+          # One branch per component, and one per libsrt minor line for upgrades that need a closer look, so a patch
+          # release never takes over a pull request that is under review.
           updates='[]'
-
           if is_newer "$openssl_latest" "$openssl_pinned"; then
             updates=$(jq -c --arg from "$openssl_pinned" --arg to "$openssl_latest" \
               '. + [{component: "openssl", name: "OpenSSL", from: $from, to: $to, patch: true, branch: "native-updates/openssl"}]' <<< "$updates")
           fi
 
           if is_newer "$srt_target" "$srt_pinned"; then
-            if [ "${srt_target%.*}" = "$srt_line" ]; then
-              patch=true
-              branch=native-updates/libsrt
-            else
-              patch=false
-              branch="native-updates/libsrt-${srt_target%.*}"
+            patch=true branch=native-updates/libsrt
+            if [ "${srt_target%.*}" != "$srt_line" ]; then
+              patch=false branch="native-updates/libsrt-${srt_target%.*}"
             fi
-
             updates=$(jq -c --arg from "$srt_pinned" --arg to "$srt_target" --argjson patch "$patch" --arg branch "$branch" \
               '. + [{component: "libsrt", name: "libsrt", from: $from, to: $to, patch: $patch, branch: $branch}]' <<< "$updates")
           fi
 
-          {
-            echo "| Component | Pinned | Latest | Proposed |"
-            echo "| --- | --- | --- | --- |"
-            echo "| OpenSSL $openssl_line | $openssl_pinned | $openssl_latest | $(jq -r '.[] | select(.component == "openssl") | .to' <<< "$updates") |"
-            echo "| libsrt | $srt_pinned | $srt_latest | $(jq -r '.[] | select(.component == "libsrt") | .to' <<< "$updates") |"
-          } >> "$GITHUB_STEP_SUMMARY"
-
+          echo "OpenSSL $openssl_pinned (latest $openssl_latest), libsrt $srt_pinned (latest $srt_latest); updates: $updates"
           echo "updates=$updates" >> "$GITHUB_OUTPUT"
 
   update:
@@ -114,291 +97,105 @@ jobs:
     if: needs.check.outputs.updates != '[]' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-24.04
     timeout-minutes: 20
+    permissions:
+      contents: write # Push the update branch.
+      pull-requests: write # Create the label and open the pull request.
     strategy:
       fail-fast: false
       matrix:
         include: ${{ fromJSON(needs.check.outputs.updates) }}
     env:
       TITLE: Update the bundled ${{ matrix.name }} to ${{ matrix.to }}
-      BRANCH: ${{ matrix.branch }}
-      SETUP: ${{ github.server_url }}/${{ github.repository }}/blob/main/CONTRIBUTING.md#one-time-setup
+      UPSTREAM: ${{ matrix.component == 'libsrt' && 'https://github.com/Haivision/srt' || 'https://github.com/openssl/openssl' }}
+      TAG: ${{ matrix.component == 'libsrt' && 'v' || 'openssl-' }}
     steps:
-      - name: Check the update App configuration
-        env:
-          CLIENT_ID: ${{ vars.NATIVE_UPDATES_CLIENT_ID }}
-          HAS_KEY: ${{ secrets.NATIVE_UPDATES_PRIVATE_KEY != '' }}
-        run: |
-          if [ -z "$CLIENT_ID" ] || [ "$HAS_KEY" != true ]; then
-            echo "::error::Set the NATIVE_UPDATES_CLIENT_ID variable and the NATIVE_UPDATES_PRIVATE_KEY secret: $SETUP"
-            exit 1
-          fi
-
-      # A pull request created with the workflow's own token would only start approval-required CI runs, so the
-      # required checks would never pass on their own. The App token also signs the commits.
-      - uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
-        id: app
-        with:
-          client-id: ${{ vars.NATIVE_UPDATES_CLIENT_ID }}
-          private-key: ${{ secrets.NATIVE_UPDATES_PRIVATE_KEY }}
-          permission-contents: write
-          permission-pull-requests: write
-
-      - name: Look at earlier pull requests for this update
-        id: history
-        env:
-          GH_TOKEN: ${{ steps.app.outputs.token }}
-          APP: ${{ steps.app.outputs.app-slug }}
-        run: |
-          set -euo pipefail
-
-          # Closing an update pull request without merging it declines that release; a later release opens a new one.
-          declined=$(gh pr list --repo "$GITHUB_REPOSITORY" --head "$BRANCH" --base main --state closed --limit 100 \
-            --json number,title,mergedAt | jq -r --arg title "$TITLE" 'map(select(.mergedAt == null and .title == $title)) | .[0].number // empty')
-          open_title=$(gh pr list --repo "$GITHUB_REPOSITORY" --head "$BRANCH" --base main --state open \
-            --json title --jq '.[0].title // ""')
-
-          # A branch that someone else pushed to belongs to them: refreshing it would discard their commits.
-          others=0
-
-          if [ -n "$open_title" ] && gh api "repos/$GITHUB_REPOSITORY/branches/$BRANCH" > /dev/null 2>&1; then
-            others=$(gh api "repos/$GITHUB_REPOSITORY/compare/main...$BRANCH" \
-              | jq --arg app "$APP" '[.commits[] | select(.author.login != ($app + "[bot]"))] | length')
-          fi
-
-          skip=false
-
-          if [ -n "$declined" ]; then
-            skip=true
-            echo "#$declined was closed without merging, so $TITLE is declined." >> "$GITHUB_STEP_SUMMARY"
-          elif [ "$others" != 0 ]; then
-            skip=true
-            echo "$BRANCH has commits from people, so the workflow leaves its pull request alone." >> "$GITHUB_STEP_SUMMARY"
-          fi
-
-          {
-            echo "skip=$skip"
-            echo "open-title=$open_title"
-          } >> "$GITHUB_OUTPUT"
-
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        if: steps.history.outputs.skip != 'true'
         with:
           persist-credentials: false
 
       - name: Update the pin
-        id: pin
-        if: steps.history.outputs.skip != 'true'
+        id: update
         env:
+          GH_TOKEN: ${{ github.token }}
           COMPONENT: ${{ matrix.component }}
-          VERSION: ${{ matrix.to }}
+          FROM: ${{ matrix.from }}
+          TO: ${{ matrix.to }}
+          BRANCH: ${{ matrix.branch }}
         run: |
           set -euo pipefail
 
+          # Only this repository's own update branch counts, so a fork's pull request with the same branch name and title
+          # cannot hold an update back. An open pull request for this release is left as it is unless it conflicts with
+          # main, and a closed, unmerged one means a maintainer declined the release. A pull request for an older release
+          # is replaced.
+          existing=$(gh pr list --repo "$GITHUB_REPOSITORY" --head "$BRANCH" --base main --state all --limit 100 \
+            --json number,title,state,isCrossRepository,mergeable \
+            --jq 'map(select(.title == env.TITLE and .state != "MERGED" and (.isCrossRepository | not)
+              and (.state != "OPEN" or .mergeable != "CONFLICTING")))[0] // empty | "#\(.number) is \(.state | ascii_downcase)"')
+
+          if [ -n "$existing" ]; then
+            echo "$TITLE: $existing, so the workflow leaves it alone." >> "$GITHUB_STEP_SUMMARY"
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          compare="$UPSTREAM/compare/$TAG$FROM...$TAG$TO"
           case "$COMPONENT" in
             libsrt)
-              old_commit=$(jq -r .srt.commit native/versions.json)
-              cmake -DSRT_VERSION="$VERSION" -P native/cmake/UpdateLibsrt.cmake
-              new_commit=$(jq -r .srt.commit native/versions.json)
-              echo "release=https://github.com/Haivision/srt/releases/tag/v$VERSION" >> "$GITHUB_OUTPUT"
-              echo "compare=https://github.com/Haivision/srt/compare/$old_commit...$new_commit" >> "$GITHUB_OUTPUT"
-              echo "revision=commit \`$new_commit\`" >> "$GITHUB_OUTPUT"
+              # libsrt is pinned by commit because a tag can move, so the review link compares the pinned commits.
+              from_commit=$(jq -r .srt.commit native/versions.json)
+              cmake -DSRT_VERSION="$TO" -P native/cmake/UpdateLibsrt.cmake
+              compare="$UPSTREAM/compare/$from_commit...$(jq -r .srt.commit native/versions.json)"
               ;;
-            openssl)
-              old_version=$(jq -r .openssl.version native/versions.json)
-              cmake -DOPENSSL_VERSION="$VERSION" -P native/cmake/UpdateOpenSSL.cmake
-              echo "release=https://github.com/openssl/openssl/releases/tag/openssl-$VERSION" >> "$GITHUB_OUTPUT"
-              echo "compare=https://github.com/openssl/openssl/compare/openssl-$old_version...openssl-$VERSION" >> "$GITHUB_OUTPUT"
-              echo "revision=SHA-256 \`$(jq -r .openssl.sha256 native/versions.json)\`" >> "$GITHUB_OUTPUT"
-              ;;
-            *)
-              echo "::error::Unknown component $COMPONENT."
-              exit 1
-              ;;
+            openssl) cmake -DOPENSSL_VERSION="$TO" -P native/cmake/UpdateOpenSSL.cmake ;;
+            *) echo "::error::Unknown component $COMPONENT."; exit 1 ;;
           esac
+          echo "compare=$compare" >> "$GITHUB_OUTPUT"
 
           # The OpenSSL verification downloads into artifacts/, which git ignores; keep the tree to the pin changes.
           rm -rf artifacts
-          git status --short
-
-      - name: Write the pull request description
-        if: steps.history.outputs.skip != 'true'
-        env:
-          NAME: ${{ matrix.name }}
-          FROM: ${{ matrix.from }}
-          TO: ${{ matrix.to }}
-          PATCH: ${{ matrix.patch }}
-          AUTOMERGE_OFF: ${{ vars.NATIVE_UPDATES_AUTOMERGE == 'false' }}
-          RELEASE: ${{ steps.pin.outputs.release }}
-          COMPARE: ${{ steps.pin.outputs.compare }}
-          REVISION: ${{ steps.pin.outputs.revision }}
-          RUN: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-        run: |
-          {
-            echo "Updates the bundled $NAME from $FROM to $TO ($REVISION)."
-            echo
-            echo "- [Release notes]($RELEASE)"
-            echo "- [Upstream changes]($COMPARE)"
-            echo
-            echo "CI builds $NAME from the new source on every runtime. The native build checks that the libsrt headers keep the structure layouts and constant values Srt.NET relies on (\`native/abi/managed_abi.c\`), and the full test suite, the RHEL 8 and Alpine compatibility tests and the package tests run against the new libraries. CI connects both ends of every test to the same libsrt, so it does not catch interoperability changes with peers on other versions."
-            echo
-
-            if [ "$PATCH" != true ]; then
-              echo "This update needs review before it merges: a new libsrt minor or major release may change the API, the ABI or behavior. Read the release notes and the upstream changes before merging."
-            elif [ "$AUTOMERGE_OFF" = true ]; then
-              echo "This is a patch release on the pinned line. Auto-merge is turned off for this repository (the \`NATIVE_UPDATES_AUTOMERGE\` variable), so it waits for review."
-            else
-              echo "This is a patch release on the pinned line, so it merges automatically once the required checks pass. To hold it, turn off auto-merge on this pull request; to decline this release, close it."
-            fi
-
-            echo
-            echo "Before the next Srt.NET release, read the release notes. If the update fixes vulnerabilities and its CHANGELOG entry is under Changed, move it under Security."
-            echo
-            echo "Opened by \`.github/workflows/native-updates.yml\` ([run]($RUN)). While this pull request is open, the workflow refreshes it daily onto the latest \`main\`, unless someone else pushes to its branch."
-          } > "$RUNNER_TEMP/pull-request.md"
-
-      - name: Create the label
-        if: steps.history.outputs.skip != 'true'
-        env:
-          GH_TOKEN: ${{ steps.app.outputs.token }}
-        run: |
-          gh label create native-dependencies --repo "$GITHUB_REPOSITORY" --force --color 1d76db \
-            --description "Bundled libsrt or OpenSSL update (managed by native-updates.yml)"
+          gh label create native-dependencies --repo "$GITHUB_REPOSITORY" --force --color 1d76db --description "Bundled libsrt or OpenSSL update"
 
       - uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
-        id: pr
-        if: steps.history.outputs.skip != 'true'
+        if: steps.update.outputs.skip != 'true'
         with:
-          token: ${{ steps.app.outputs.token }}
           branch: ${{ matrix.branch }}
           base: main
           sign-commits: true
           delete-branch: true
           commit-message: ${{ env.TITLE }}
           title: ${{ env.TITLE }}
-          body-path: ${{ runner.temp }}/pull-request.md
           labels: native-dependencies
+          body: |
+            Updates the bundled ${{ matrix.name }} from ${{ matrix.from }} to ${{ matrix.to }}: [release notes](${{ env.UPSTREAM }}/releases/tag/${{ env.TAG }}${{ matrix.to }}), [upstream changes](${{ steps.update.outputs.compare }}).
 
-      - name: Set auto-merge
-        if: steps.history.outputs.skip != 'true' && steps.pr.outputs.pull-request-number != '' && steps.pr.outputs.pull-request-operation != 'closed'
-        env:
-          GH_TOKEN: ${{ steps.app.outputs.token }}
-          APP: ${{ steps.app.outputs.app-slug }}
-          NUMBER: ${{ steps.pr.outputs.pull-request-number }}
-          WANT: ${{ matrix.patch && vars.NATIVE_UPDATES_AUTOMERGE != 'false' }}
-          OPEN_TITLE: ${{ steps.history.outputs.open-title }}
-        run: |
-          set -euo pipefail
-          # GraphQL reports the App's login without the [bot] suffix that REST uses.
-          is_app() { [ "$1" = "$APP" ] || [ "$1" = "${APP}[bot]" ]; }
-          # shellcheck disable=SC2016 # $owner, $repo and $number are GraphQL variables.
-          state=$(gh api graphql -F owner="${GITHUB_REPOSITORY%/*}" -F repo="${GITHUB_REPOSITORY#*/}" -F number="$NUMBER" -f query='
-            query($owner: String!, $repo: String!, $number: Int!) {
-              repository(owner: $owner, name: $repo) {
-                pullRequest(number: $number) {
-                  autoMergeRequest { enabledBy { login } }
-                  timelineItems(itemTypes: [AUTO_MERGE_DISABLED_EVENT], last: 1) {
-                    nodes { ... on AutoMergeDisabledEvent { actor { login } } }
-                  }
-                }
-              }
-            }')
-          enabled_by=$(jq -r '.data.repository.pullRequest.autoMergeRequest.enabledBy.login // ""' <<< "$state")
-          disabled_by=$(jq -r '.data.repository.pullRequest.timelineItems.nodes[0].actor.login // ""' <<< "$state")
+            **To start CI**, select **Approve workflows to run** on this pull request. GitHub holds the CI runs of a pull request that a workflow's `GITHUB_TOKEN` opens or updates until someone with write access approves them, so approve again after each update.
 
-          if [ "$WANT" != true ]; then
-            # Turn off only auto-merge that this workflow turned on, never one a maintainer enabled after review.
-            if is_app "$enabled_by"; then
-              gh pr merge "$NUMBER" --repo "$GITHUB_REPOSITORY" --disable-auto
-            fi
-          elif [ -z "$enabled_by" ]; then
-            if [ "$OPEN_TITLE" = "$TITLE" ] && [ -n "$disabled_by" ] && ! is_app "$disabled_by"; then
-              # A person turned off auto-merge: the pull request is on hold until a newer release replaces it.
-              echo "Auto-merge was turned off by $disabled_by; #$NUMBER stays on hold." >> "$GITHUB_STEP_SUMMARY"
-            else
-              gh pr merge "$NUMBER" --repo "$GITHUB_REPOSITORY" --auto --squash
-            fi
-          fi
+            - [ ] Read the release notes.
+            - [ ] libsrt only: check `srt.h` for new functions and `SRTO_*` options.
+            - [ ] Before the next release, a maintainer updates `CHANGELOG.md` as [MAINTAINING.md](${{ github.server_url }}/${{ github.repository }}/blob/main/MAINTAINING.md#changelog-entries) describes.
+            - [ ] A new minor or major release (not a patch) needs a closer look: the API, the ABI or behavior may change.
+
+            Closing this pull request declines ${{ matrix.name }} ${{ matrix.to }}; the workflow does not propose it again. A newer release replaces this branch, title and description, discarding commits pushed here. Opened by `.github/workflows/native-updates.yml` ([run](${{ env.RUN }})).
 
   report:
     needs: [check, update]
-    if: ${{ !cancelled() && needs.check.result == 'success' }}
+    if: failure() && github.ref == 'refs/heads/main'
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    timeout-minutes: 5
     permissions:
-      issues: write # Open, update, or close the tracking issue.
-      pull-requests: read # Find the update pull requests.
+      issues: write # Open or comment on the failure issue.
     steps:
-      - name: Maintain the tracking issue
+      - name: Report the failure in an issue
         env:
           GH_TOKEN: ${{ github.token }}
-          UPDATES: ${{ needs.check.outputs.updates }}
-          RESULT: ${{ needs.update.result }}
-          ON_MAIN: ${{ github.ref == 'refs/heads/main' }}
-          RUN: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-          SETUP: ${{ github.server_url }}/${{ github.repository }}/blob/main/CONTRIBUTING.md#one-time-setup
-          LABEL: native-dependencies
-          TITLE: Native dependency update needs attention
+          TITLE: Native dependency update failed
+          DOCS: ${{ github.server_url }}/${{ github.repository }}/blob/main/MAINTAINING.md#native-dependency-updates
         run: |
-          set -euo pipefail
+          number=$(gh issue list --repo "$GITHUB_REPOSITORY" --state open --limit 200 --json number,title --jq 'map(select(.title == env.TITLE))[0].number // empty')
 
-          if [ "$ON_MAIN" != true ]; then
-            echo "Not on main; the tracking issue is left unchanged."
-            exit 0
-          fi
-
-          # An update is handled when its pull request is open at the target release, or when a maintainer declined
-          # that release by closing its pull request.
-          missing='[]'
-
-          while read -r update; do
-            [ -n "$update" ] || continue
-            branch=$(jq -r .branch <<< "$update")
-            title="Update the bundled $(jq -r .name <<< "$update") to $(jq -r .to <<< "$update")"
-            handled=$(gh pr list --repo "$GITHUB_REPOSITORY" --head "$branch" --base main --state all --limit 100 \
-              --json title,state,mergedAt \
-              | jq --arg title "$title" 'map(select(.title == $title and (.state == "OPEN" or (.state == "CLOSED" and .mergedAt == null)))) | length')
-
-            if [ "$handled" = 0 ]; then
-              missing=$(jq -c --argjson update "$update" '. + [$update]' <<< "$missing")
-            fi
-          done < <(jq -c '.[]' <<< "$UPDATES")
-
-          # Only the issue this workflow opened: the label alone could match issues that people filed or relabeled.
-          # gh reports issues opened with the workflow token as authored by app/github-actions.
-          existing=$(gh issue list --repo "$GITHUB_REPOSITORY" --state open --label "$LABEL" --json number,author \
-            --jq 'map(select(.author.login == "app/github-actions")) | .[0].number // empty')
-
-          if [ "$missing" = '[]' ] && { [ "$RESULT" = success ] || [ "$RESULT" = skipped ]; }; then
-            if [ -n "$existing" ]; then
-              gh issue close "$existing" --repo "$GITHUB_REPOSITORY" --comment "Every available native update has an open or declined pull request ([run]($RUN))."
-            fi
-
-            exit 0
-          fi
-
-          body=$(
-            if [ "$missing" = '[]' ]; then
-              echo "Every available native update has a pull request, but a step of the automated update failed ([run]($RUN)); for example, auto-merge may not have been set."
-            else
-              echo "The automated update did not open or refresh a pull request for these newer releases ([run]($RUN)):"
-              echo
-              echo "| Component | Pinned | Available |"
-              echo "| --- | --- | --- |"
-              jq -r '.[] | "| \(.name) | \(.from) | \(.to) |"' <<< "$missing"
-              echo
-              echo "If the run reports that the update App is not configured, see [One-time setup]($SETUP). If someone pushed to the update branch, the workflow leaves that pull request alone. Otherwise the run log shows which step failed; the update can also be made by hand:"
-              echo
-              echo "- OpenSSL: \`cmake -DOPENSSL_VERSION=<version> -P native/cmake/UpdateOpenSSL.cmake\` (needs GnuPG)."
-              echo "- libsrt: \`cmake -DSRT_VERSION=<version> -P native/cmake/UpdateLibsrt.cmake\`."
-            fi
-
-            echo
-            echo "This issue is maintained by \`.github/workflows/native-updates.yml\` and closes automatically once every available update has an open or declined pull request."
-          )
-
-          if [ -z "$existing" ]; then
-            gh label create "$LABEL" --repo "$GITHUB_REPOSITORY" --force --color 1d76db --description "Bundled libsrt or OpenSSL update (managed by native-updates.yml)"
-            gh issue create --repo "$GITHUB_REPOSITORY" --title "$TITLE" --label "$LABEL" --body "$body"
-          elif [ "$(gh issue view "$existing" --repo "$GITHUB_REPOSITORY" --json body --jq .body)" != "$body" ]; then
-            gh issue edit "$existing" --repo "$GITHUB_REPOSITORY" --body "$body"
+          if [ -n "$number" ]; then
+            gh issue comment "$number" --repo "$GITHUB_REPOSITORY" --body "Failed again: $RUN"
+          else
+            gh issue create --repo "$GITHUB_REPOSITORY" --title "$TITLE" --body "The native dependency update failed: $RUN. If creating the pull request failed with \"GitHub Actions is not permitted to create or approve pull requests\", turn on **Allow GitHub Actions to create and approve pull requests** in Settings > Actions > General > Workflow permissions (an organization owner may need to allow it first). To update by hand, see $DOCS. Close this issue once the update works again."
           fi

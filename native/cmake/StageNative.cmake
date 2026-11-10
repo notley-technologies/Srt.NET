@@ -71,7 +71,19 @@ if(SRTNET_RID MATCHES "^linux-")
     include("${CMAKE_CURRENT_LIST_DIR}/VerifyElf.cmake")
     verify_elf("${SOURCE_BINARY}" "${SRTNET_RID}" "${READELF}" LIBC)
 elseif(SRTNET_RID MATCHES "^osx-")
+    # Set the install name and re-sign (install_name_tool invalidates the linker's ad hoc signature) in a copy beside
+    # the install tree, so the gate checks the exact file that is staged.
     include("${CMAKE_CURRENT_LIST_DIR}/VerifyMachO.cmake")
+    find_program(INSTALL_NAME_TOOL install_name_tool REQUIRED)
+    find_program(CODESIGN codesign REQUIRED)
+    get_filename_component(MACHO_STAGING "${INSTALL_ROOT}/../stage" ABSOLUTE)
+    file(MAKE_DIRECTORY "${MACHO_STAGING}")
+    file(COPY_FILE "${SOURCE_BINARY}" "${MACHO_STAGING}/${NATIVE_FILE}")
+    set(SOURCE_BINARY "${MACHO_STAGING}/${NATIVE_FILE}")
+    execute_process(COMMAND "${INSTALL_NAME_TOOL}" -id "${SRTNET_MACOS_INSTALL_NAME}" "${SOURCE_BINARY}"
+        COMMAND_ERROR_IS_FATAL ANY)
+    execute_process(COMMAND "${CODESIGN}" --force --sign - "${SOURCE_BINARY}"
+        COMMAND_ERROR_IS_FATAL ANY)
     verify_macho("${SOURCE_BINARY}" "${SRTNET_RID}")
 endif()
 
@@ -128,15 +140,6 @@ set(OUTPUT_BINARY "${OUTPUT_DIRECTORY}/${NATIVE_FILE}")
 file(MAKE_DIRECTORY "${OUTPUT_DIRECTORY}" "${ARTIFACTS_ROOT}/licenses")
 file(COPY_FILE "${SOURCE_BINARY}" "${OUTPUT_BINARY}" ONLY_IF_DIFFERENT)
 
-if(SRTNET_RID MATCHES "^osx-")
-    find_program(INSTALL_NAME_TOOL install_name_tool REQUIRED)
-    find_program(CODESIGN codesign REQUIRED)
-    execute_process(COMMAND "${INSTALL_NAME_TOOL}" -id "@rpath/libsrt.dylib" "${OUTPUT_BINARY}"
-        COMMAND_ERROR_IS_FATAL ANY)
-    execute_process(COMMAND "${CODESIGN}" --force --sign - "${OUTPUT_BINARY}"
-        COMMAND_ERROR_IS_FATAL ANY)
-endif()
-
 # Git may check libsrt out with CRLF line endings (core.autocrlf on Windows), so license texts are written with LF
 # line endings: every build then stages identical files.
 function(copy_text_with_lf SOURCE DESTINATION)
@@ -180,7 +183,6 @@ if(NOT TOOLCHAIN_PACKAGES STREQUAL "")
     string(JSON BUILD_INFO SET "${BUILD_INFO}" toolchain "[ \"${TOOLCHAIN_JSON}\" ]")
 endif()
 
-file(REMOVE "${OUTPUT_DIRECTORY}/build-info.json")
 file(WRITE "${OUTPUT_DIRECTORY}/srt.build-info.json" "${BUILD_INFO}\n")
 
 include("${CMAKE_CURRENT_LIST_DIR}/NativeSbom.cmake")

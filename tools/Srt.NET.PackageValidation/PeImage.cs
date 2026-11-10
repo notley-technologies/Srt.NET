@@ -7,11 +7,10 @@
 using System.Buffers.Binary;
 using System.Collections.Immutable;
 using System.Reflection.PortableExecutable;
-using System.Text;
 
 namespace Srt.Net.PackageValidation;
 
-/// <summary>The machine type and named exports of a native Windows PE image.</summary>
+/// <summary>The machine type and security characteristics of a native Windows PE image.</summary>
 internal sealed class PeImage
 {
     // IMAGE_DLLCHARACTERISTICS_GUARD_CF, and the IMAGE_DEBUG_TYPE_EX_DLLCHARACTERISTICS entry with its CET_COMPAT bit;
@@ -58,9 +57,6 @@ internal sealed class PeImage
         private set;
     }
 
-    /// <summary>The names in the export directory; ordinal-only exports are not listed.</summary>
-    internal SortedSet<string> Exports { get; } = new(StringComparer.Ordinal);
-
     internal static PeImage Read(byte[] image)
     {
         try
@@ -87,65 +83,15 @@ internal sealed class PeImage
                 }
             }
 
-            DirectoryEntry directory = headers.PEHeader.ExportTableDirectory;
-
-            if (directory.Size != 0)
-            {
-                result.ReadExports(image, headers, directory.RelativeVirtualAddress);
-            }
-
             return result;
         }
         catch (BadImageFormatException exception)
         {
             throw new InvalidDataException("The PE image is malformed.", exception);
         }
-        catch (Exception exception) when (exception is ArgumentOutOfRangeException or IndexOutOfRangeException or OverflowException)
+        catch (ArgumentOutOfRangeException exception)
         {
-            throw new InvalidDataException("The PE export table is truncated or malformed.", exception);
-        }
-    }
-
-    private static int ToFileOffset(PEHeaders headers, int relativeVirtualAddress)
-    {
-        foreach (SectionHeader section in headers.SectionHeaders)
-        {
-            int size = Math.Max(section.VirtualSize, section.SizeOfRawData);
-
-            if (relativeVirtualAddress >= section.VirtualAddress && relativeVirtualAddress < section.VirtualAddress + size)
-            {
-                return checked(relativeVirtualAddress - section.VirtualAddress + section.PointerToRawData);
-            }
-        }
-
-        throw new InvalidDataException($"PE address 0x{relativeVirtualAddress:X} is outside every section.");
-    }
-
-    private void ReadExports(ReadOnlySpan<byte> image, PEHeaders headers, int directoryAddress)
-    {
-        // IMAGE_EXPORT_DIRECTORY: NumberOfNames at 0x18 and AddressOfNames (an array of name RVAs) at 0x20.
-        ReadOnlySpan<byte> directory = image[ToFileOffset(headers, directoryAddress)..];
-        int count = checked((int)BinaryPrimitives.ReadUInt32LittleEndian(directory[0x18..]));
-
-        if (count == 0)
-        {
-            return;
-        }
-
-        int names = ToFileOffset(headers, checked((int)BinaryPrimitives.ReadUInt32LittleEndian(directory[0x20..])));
-
-        for (int index = 0; index < count; index++)
-        {
-            int address = checked((int)BinaryPrimitives.ReadUInt32LittleEndian(image[(names + (index * 4))..]));
-            ReadOnlySpan<byte> name = image[ToFileOffset(headers, address)..];
-            int length = name.IndexOf((byte)0);
-
-            if (length < 0)
-            {
-                throw new InvalidDataException("A PE export name is not terminated.");
-            }
-
-            Exports.Add(Encoding.ASCII.GetString(name[..length]));
+            throw new InvalidDataException("The PE debug directory is truncated.", exception);
         }
     }
 }

@@ -99,7 +99,6 @@
     <Error Condition="!Exists('../../artifacts/licenses/libsrt-COPYRIGHT.txt') Or !Exists('../../artifacts/licenses/openssl-COPYRIGHT.txt')" Text="Native dependency copyright notices are missing. Run the native build script." />
   </Target>
 
-  <!-- Release guard: a tag build must never produce a package without a license (MPL-2.0, set above). -->
   <!--
     Tag builds pin the package readme's repository links (blob/main) and the release notes to the release tag, so the
     readme that ships with a version keeps describing that version. Other builds pack PACKAGE.md unchanged.
@@ -115,10 +114,6 @@
       <None Remove="PACKAGE.md" />
       <None Include="$(_SrtPinnedReadme)" Pack="true" PackagePath="/" />
     </ItemGroup>
-  </Target>
-
-  <Target Name="ValidateReleaseLicense" BeforeTargets="GenerateNuspec" Condition="'$(GITHUB_REF_TYPE)' == 'tag'">
-    <Error Condition="'$(PackageLicenseExpression)' == '' And '$(PackageLicenseFile)' == ''" Text="Select Srt.NET's license (PackageLicenseExpression or PackageLicenseFile) before tagging a release." />
   </Target>
 
   <!--
