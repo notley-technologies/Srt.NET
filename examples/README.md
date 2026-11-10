@@ -11,7 +11,7 @@ All four use the same port and protocol, so any client works with either server.
 
 ## Build the native library
 
-Use the .NET SDK selected by the root `global.json` and install the .NET 8 runtime. Build libsrt once for your platform using the [contributing guide](../CONTRIBUTING.md). On Linux, the build runs in a pinned container, so only Docker is required. For example, from the repository root on Linux x64:
+Use the .NET SDK selected by the root `global.json` and install the .NET 8 runtime. Download the native library that CI built, as the [quick start](../CONTRIBUTING.md#quick-start-for-managed-changes) describes, or build libsrt once for your platform using the [contributing guide](../CONTRIBUTING.md#building-native-libraries). On Linux, the build runs in a pinned container, so only Docker is required. For example, from the repository root on Linux x64:
 
 ```sh
 bash native/build-linux.sh linux-x64

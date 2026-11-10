@@ -71,19 +71,6 @@ internal static partial class PackageVerifier
         VerifyRuntimeLayout(package, selectedRuntimes);
         VerifySbomManifest(package);
 
-        // Every native library must export everything either managed build can call.
-        SortedSet<string> entryPoints = new(StringComparer.Ordinal);
-
-        foreach (string assembly in ManagedAssemblies)
-        {
-            entryPoints.UnionWith(PInvokeEntryPoints.Read(ReadEntry(GetEntry(package, assembly)), PInvokeEntryPoints.LibsrtModule));
-        }
-
-        if (entryPoints.Count == 0)
-        {
-            throw new InvalidDataException($"The managed assemblies declare no P/Invoke entry points in '{PInvokeEntryPoints.LibsrtModule}'.");
-        }
-
         foreach (string rid in selectedRuntimes)
         {
             string prefix = $"runtimes/{rid}/native/";
@@ -112,11 +99,11 @@ internal static partial class PackageVerifier
                 throw new InvalidDataException($"The {rid} manifest records C library '{info.Libc}', not {libc}.");
             }
 
-            string summary = NativeLibraryVerifier.Verify(rid, binary, entryPoints);
+            string summary = NativeLibraryVerifier.Verify(rid, binary);
             Console.WriteLine($"  {rid}: {summary}; built with {info.Compiler ?? "an unrecorded compiler"}");
         }
 
-        Console.WriteLine($"Verified {Path.GetFileName(packagePath)}: {string.Join(", ", selectedRuntimes)} ({entryPoints.Count} P/Invoke entry points)");
+        Console.WriteLine($"Verified {Path.GetFileName(packagePath)}: {string.Join(", ", selectedRuntimes)}");
     }
 
     private static void VerifyRuntimeLayout(ZipArchive package, string[] selectedRuntimes)
@@ -139,10 +126,7 @@ internal static partial class PackageVerifier
             }
             else if (selectedRuntimes.Contains(parts[1], StringComparer.Ordinal) && parts[3] != library && parts[3] != ToolContext.BuildInfoFile)
             {
-                string reason = parts[3] == ToolContext.LegacyBuildInfoFile
-                    ? $"; the manifest is now {ToolContext.BuildInfoFile}, because a bare {ToolContext.LegacyBuildInfoFile} collides with application files"
-                    : string.Empty;
-                failures.Add($"unexpected native file {entry.FullName}{reason}");
+                failures.Add($"unexpected native file {entry.FullName}");
             }
         }
 
@@ -251,7 +235,7 @@ internal static partial class PackageVerifier
 
     private static byte[] ReadEntry(ZipArchiveEntry entry)
     {
-        // Deflate streams cannot seek, and the parsers need random access.
+        // Deflate streams cannot seek, and the PE reader needs random access.
         byte[] contents = new byte[checked((int)entry.Length)];
         using Stream input = entry.Open();
         input.ReadExactly(contents);

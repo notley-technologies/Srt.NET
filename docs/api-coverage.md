@@ -105,69 +105,69 @@ Every bundled runtime is built with libsrt's default feature switches, so ENABLE
 
 Access is listed for each typed option. Readable native controls remain readable through GetOption, including timestamp delivery, congestion selection, message mode, encryption enforcement, payload size, and connection/drop timeouts. TransmissionType and Passphrase remain write-only because libsrt has no getter for them.
 
-The enum sentinel SRTO_E_SIZE is not an option. Reserved numeric gaps are not options.
+The enum sentinel SRTO_E_SIZE is not an option. Reserved numeric gaps are not options. For every option whose access the table lists, native code validates platform support, range, and configuration timing.
 
 | Native option | Status | Managed surface | Decision / limit |
 | --- | --- | --- | --- |
-| `SRTO_MSS` | Covered | SrtOptions.MaximumSegmentSize | read/write; native code validates platform support, range, and configuration timing. |
+| `SRTO_MSS` | Covered | SrtOptions.MaximumSegmentSize | read/write. |
 | `SRTO_SNDSYN` | Managed | Blocking and asynchronous operations; Try operations; SrtPoller | Native sockets remain nonblocking; blocking calls wait through the readiness engine so cancellation and disposal interrupt them immediately. Arbitrary native blocking mode is not exposed. |
 | `SRTO_RCVSYN` | Managed | Blocking and asynchronous operations; Try operations; SrtPoller | Native sockets remain nonblocking; blocking calls wait through the readiness engine so cancellation and disposal interrupt them immediately. Arbitrary native blocking mode is not exposed. |
-| `SRTO_ISN` | Covered | SrtOptions.InitialSequenceNumber | read; native code validates platform support, range, and configuration timing. |
-| `SRTO_FC` | Covered | SrtOptions.FlowControlWindow | read/write; native code validates platform support, range, and configuration timing. |
-| `SRTO_SNDBUF` | Covered | SrtOptions.SendBufferSize | read/write; native code validates platform support, range, and configuration timing. |
-| `SRTO_RCVBUF` | Covered | SrtOptions.ReceiveBufferSize | read/write; native code validates platform support, range, and configuration timing. |
-| `SRTO_LINGER` | Covered | SrtOptions.Linger | read/write; native code validates platform support, range, and configuration timing. |
-| `SRTO_UDP_SNDBUF` | Covered | SrtOptions.UdpSendBufferSize | read/write; native code validates platform support, range, and configuration timing. |
-| `SRTO_UDP_RCVBUF` | Covered | SrtOptions.UdpReceiveBufferSize | read/write; native code validates platform support, range, and configuration timing. |
-| `SRTO_RENDEZVOUS` | Covered | SrtOptions.Rendezvous | read/write; native code validates platform support, range, and configuration timing. |
+| `SRTO_ISN` | Covered | SrtOptions.InitialSequenceNumber | read. |
+| `SRTO_FC` | Covered | SrtOptions.FlowControlWindow | read/write. |
+| `SRTO_SNDBUF` | Covered | SrtOptions.SendBufferSize | read/write. |
+| `SRTO_RCVBUF` | Covered | SrtOptions.ReceiveBufferSize | read/write. |
+| `SRTO_LINGER` | Covered | SrtOptions.Linger | read/write. |
+| `SRTO_UDP_SNDBUF` | Covered | SrtOptions.UdpSendBufferSize | read/write. |
+| `SRTO_UDP_RCVBUF` | Covered | SrtOptions.UdpReceiveBufferSize | read/write. |
+| `SRTO_RENDEZVOUS` | Covered | SrtOptions.Rendezvous | read/write. |
 | `SRTO_SNDTIMEO` | Managed | Per-operation timeout | Managed deadlines replace native blocking-operation timeouts. |
 | `SRTO_RCVTIMEO` | Managed | Per-operation timeout | Managed deadlines replace native blocking-operation timeouts. |
-| `SRTO_REUSEADDR` | Covered | SrtOptions.ReuseAddress | read/write; native code validates platform support, range, and configuration timing. |
-| `SRTO_MAXBW` | Covered | SrtOptions.MaximumBandwidth | read/write; native code validates platform support, range, and configuration timing. |
+| `SRTO_REUSEADDR` | Covered | SrtOptions.ReuseAddress | read/write. |
+| `SRTO_MAXBW` | Covered | SrtOptions.MaximumBandwidth | read/write. |
 | `SRTO_STATE` | Covered | SrtSocket.State | A state value does not indicate an accept queue is ready. |
-| `SRTO_EVENT` | Covered | SrtOptions.AvailableEvents | read; native code validates platform support, range, and configuration timing. |
-| `SRTO_SNDDATA` | Covered | SrtOptions.PendingSendPackets | read; native code validates platform support, range, and configuration timing. |
-| `SRTO_RCVDATA` | Covered | SrtOptions.PendingReceivePackets | read; native code validates platform support, range, and configuration timing. |
+| `SRTO_EVENT` | Covered | SrtOptions.AvailableEvents | read. |
+| `SRTO_SNDDATA` | Covered | SrtOptions.PendingSendPackets | read. |
+| `SRTO_RCVDATA` | Covered | SrtOptions.PendingReceivePackets | read. |
 | `SRTO_SENDER` | Excluded | — | Legacy handshake-v4 sender selection; current handshakes negotiate bidirectional operation. |
-| `SRTO_TSBPDMODE` | Covered | SrtOptions.TimestampBasedDelivery | read/write; native code validates platform support, range, and configuration timing. |
+| `SRTO_TSBPDMODE` | Covered | SrtOptions.TimestampBasedDelivery | read/write. |
 | `SRTO_LATENCY` | Equivalent | ReceiveLatency + PeerLatency | Prefer the two directional options over the older combined alias. |
-| `SRTO_INPUTBW` | Covered | SrtOptions.InputBandwidth | read/write; native code validates platform support, range, and configuration timing. |
-| `SRTO_OHEADBW` | Covered | SrtOptions.OverheadBandwidth | read/write; native code validates platform support, range, and configuration timing. |
-| `SRTO_PASSPHRASE` | Covered | SrtOptions.Passphrase | write; native code validates platform support, range, and configuration timing. |
-| `SRTO_PBKEYLEN` | Covered | SrtOptions.EncryptionKeySize | read/write; native code validates platform support, range, and configuration timing. |
+| `SRTO_INPUTBW` | Covered | SrtOptions.InputBandwidth | read/write. |
+| `SRTO_OHEADBW` | Covered | SrtOptions.OverheadBandwidth | read/write. |
+| `SRTO_PASSPHRASE` | Covered | SrtOptions.Passphrase | write. |
+| `SRTO_PBKEYLEN` | Covered | SrtOptions.EncryptionKeySize | read/write. |
 | `SRTO_KMSTATE` | Equivalent | SendEncryptionState + ReceiveEncryptionState | Directional encryption state is clearer than the legacy combined option. |
-| `SRTO_IPTTL` | Covered | SrtOptions.IpTimeToLive | read/write; native code validates platform support, range, and configuration timing. |
-| `SRTO_IPTOS` | Covered | SrtOptions.IpTypeOfService | read/write; native code validates platform support, range, and configuration timing. |
-| `SRTO_TLPKTDROP` | Covered | SrtOptions.TooLatePacketDrop | read/write; native code validates platform support, range, and configuration timing. |
-| `SRTO_SNDDROPDELAY` | Covered | SrtOptions.SendDropDelay | read/write; native code validates platform support, range, and configuration timing. |
-| `SRTO_NAKREPORT` | Covered | SrtOptions.NegativeAcknowledgmentReports | read/write; native code validates platform support, range, and configuration timing. |
+| `SRTO_IPTTL` | Covered | SrtOptions.IpTimeToLive | read/write. |
+| `SRTO_IPTOS` | Covered | SrtOptions.IpTypeOfService | read/write. |
+| `SRTO_TLPKTDROP` | Covered | SrtOptions.TooLatePacketDrop | read/write. |
+| `SRTO_SNDDROPDELAY` | Covered | SrtOptions.SendDropDelay | read/write. |
+| `SRTO_NAKREPORT` | Covered | SrtOptions.NegativeAcknowledgmentReports | read/write. |
 | `SRTO_VERSION` | Covered | SrtSocket.NativeVersion | Managed Version value. |
-| `SRTO_PEERVERSION` | Covered | SrtOptions.PeerVersion | read; native code validates platform support, range, and configuration timing. |
-| `SRTO_CONNTIMEO` | Covered | SrtOptions.ConnectTimeout | read/write; native code validates platform support, range, and configuration timing. |
-| `SRTO_DRIFTTRACER` | Covered | SrtOptions.DriftTracer | read/write; native code validates platform support, range, and configuration timing. |
-| `SRTO_MININPUTBW` | Covered | SrtOptions.MinimumInputBandwidth | read/write; native code validates platform support, range, and configuration timing. |
-| `SRTO_SNDKMSTATE` | Covered | SrtOptions.SendEncryptionState | read; native code validates platform support, range, and configuration timing. |
-| `SRTO_RCVKMSTATE` | Covered | SrtOptions.ReceiveEncryptionState | read; native code validates platform support, range, and configuration timing. |
-| `SRTO_LOSSMAXTTL` | Covered | SrtOptions.MaximumReorderTolerance | read/write; native code validates platform support, range, and configuration timing. |
-| `SRTO_RCVLATENCY` | Covered | SrtOptions.ReceiveLatency | read/write; native code validates platform support, range, and configuration timing. |
-| `SRTO_PEERLATENCY` | Covered | SrtOptions.PeerLatency | read/write; native code validates platform support, range, and configuration timing. |
-| `SRTO_MINVERSION` | Covered | SrtOptions.MinimumPeerVersion | read/write; native code validates platform support, range, and configuration timing. |
-| `SRTO_STREAMID` | Covered | SrtOptions.StreamId | read/write; native code validates platform support, range, and configuration timing. |
-| `SRTO_CONGESTION` | Covered | SrtOptions.CongestionController | read/write; native code validates platform support, range, and configuration timing. |
-| `SRTO_MESSAGEAPI` | Covered | SrtOptions.MessageApi | read/write; native code validates platform support, range, and configuration timing. |
-| `SRTO_PAYLOADSIZE` | Covered | SrtOptions.PayloadSize | read/write; native code validates platform support, range, and configuration timing. |
-| `SRTO_TRANSTYPE` | Covered | SrtOptions.TransmissionType | write; native code validates platform support, range, and configuration timing. |
-| `SRTO_KMREFRESHRATE` | Covered | SrtOptions.KeyRefreshRate | read/write; native code validates platform support, range, and configuration timing. |
-| `SRTO_KMPREANNOUNCE` | Covered | SrtOptions.KeyPreannounce | read/write; native code validates platform support, range, and configuration timing. |
-| `SRTO_ENFORCEDENCRYPTION` | Covered | SrtOptions.EnforcedEncryption | read/write; native code validates platform support, range, and configuration timing. |
-| `SRTO_IPV6ONLY` | Covered | SrtOptions.IPv6Only | read/write; native code validates platform support, range, and configuration timing. |
-| `SRTO_PEERIDLETIMEO` | Covered | SrtOptions.PeerIdleTimeout | read/write; native code validates platform support, range, and configuration timing. |
-| `SRTO_BINDTODEVICE` | Covered | SrtOptions.BindToDevice | read/write; native code validates platform support, range, and configuration timing. |
+| `SRTO_PEERVERSION` | Covered | SrtOptions.PeerVersion | read. |
+| `SRTO_CONNTIMEO` | Covered | SrtOptions.ConnectTimeout | read/write. |
+| `SRTO_DRIFTTRACER` | Covered | SrtOptions.DriftTracer | read/write. |
+| `SRTO_MININPUTBW` | Covered | SrtOptions.MinimumInputBandwidth | read/write. |
+| `SRTO_SNDKMSTATE` | Covered | SrtOptions.SendEncryptionState | read. |
+| `SRTO_RCVKMSTATE` | Covered | SrtOptions.ReceiveEncryptionState | read. |
+| `SRTO_LOSSMAXTTL` | Covered | SrtOptions.MaximumReorderTolerance | read/write. |
+| `SRTO_RCVLATENCY` | Covered | SrtOptions.ReceiveLatency | read/write. |
+| `SRTO_PEERLATENCY` | Covered | SrtOptions.PeerLatency | read/write. |
+| `SRTO_MINVERSION` | Covered | SrtOptions.MinimumPeerVersion | read/write. |
+| `SRTO_STREAMID` | Covered | SrtOptions.StreamId | read/write. |
+| `SRTO_CONGESTION` | Covered | SrtOptions.CongestionController | read/write. |
+| `SRTO_MESSAGEAPI` | Covered | SrtOptions.MessageApi | read/write. |
+| `SRTO_PAYLOADSIZE` | Covered | SrtOptions.PayloadSize | read/write. |
+| `SRTO_TRANSTYPE` | Covered | SrtOptions.TransmissionType | write. |
+| `SRTO_KMREFRESHRATE` | Covered | SrtOptions.KeyRefreshRate | read/write. |
+| `SRTO_KMPREANNOUNCE` | Covered | SrtOptions.KeyPreannounce | read/write. |
+| `SRTO_ENFORCEDENCRYPTION` | Covered | SrtOptions.EnforcedEncryption | read/write. |
+| `SRTO_IPV6ONLY` | Covered | SrtOptions.IPv6Only | read/write. |
+| `SRTO_PEERIDLETIMEO` | Covered | SrtOptions.PeerIdleTimeout | read/write. |
+| `SRTO_BINDTODEVICE` | Covered | SrtOptions.BindToDevice | read/write. |
 | `SRTO_GROUPCONNECT` | Deferred | — | Bonding is not enabled in the bundled native builds and needs a dedicated group API. |
 | `SRTO_GROUPMINSTABLETIMEO` | Deferred | — | Bonding is not enabled in the bundled native builds and needs a dedicated group API. |
 | `SRTO_GROUPTYPE` | Deferred | — | Bonding is not enabled in the bundled native builds and needs a dedicated group API. |
-| `SRTO_PACKETFILTER` | Covered | SrtOptions.PacketFilter | read/write; native code validates platform support, range, and configuration timing. |
-| `SRTO_RETRANSMITALGO` | Covered | SrtOptions.RetransmissionAlgorithm | read/write; native code validates platform support, range, and configuration timing. |
+| `SRTO_PACKETFILTER` | Covered | SrtOptions.PacketFilter | read/write. |
+| `SRTO_RETRANSMITALGO` | Covered | SrtOptions.RetransmissionAlgorithm | read/write. |
 | `SRTO_CRYPTOMODE` | Deferred | — | Compile-time optional features are disabled in the bundled native builds; do not advertise unsupported knobs. |
 | `SRTO_MAXREXMITBW` | Deferred | — | Compile-time optional features are disabled in the bundled native builds; do not advertise unsupported knobs. |
 

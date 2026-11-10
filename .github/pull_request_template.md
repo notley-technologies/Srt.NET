@@ -8,10 +8,7 @@
 
 ## Checklist
 
-- [ ] Tests are added or updated, and `dotnet test --solution Srt.NET.slnx -c Release` passes locally.
+- [ ] Tests are added or updated. Run them locally if you have the native library; CI runs every runtime.
 - [ ] `dotnet format Srt.NET.slnx --verify-no-changes` passes.
-- [ ] Public API changes are recorded in `src/Srt.NET/PublicAPI/<target framework>/PublicAPI.Unshipped.txt` for every target framework, and no optional parameters were added to shipped methods.
-- [ ] `CHANGELOG.md` has an entry under `[Unreleased]` for user-visible changes.
-- [ ] Documentation (`README.md`, the package readme `src/Srt.NET/PACKAGE.md`, `docs/`, XML comments) is updated.
-- [ ] Native changes only: libsrt and OpenSSL pins are changed with `native/cmake/UpdateLibsrt.cmake` or `native/cmake/UpdateOpenSSL.cmake`, and the full CI matrix passed.
-- [ ] Workflow changes only: actions are pinned to full commit SHAs with a version comment, and actionlint passes.
+- [ ] Public API changes, if any, are recorded in `src/Srt.NET/PublicAPI/<target framework>/PublicAPI.Unshipped.txt` for every target framework.
+- [ ] Optional: a line under `[Unreleased]` in `CHANGELOG.md` for user-visible changes. A maintainer adjusts it before release.

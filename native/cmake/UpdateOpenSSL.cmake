@@ -5,7 +5,7 @@
 # Copyright (c) 2026 Noah Davis
 
 # Pins an OpenSSL 3.5 LTS release: downloads the official archive, verifies its signature against
-# native/openssl-release-key.asc, and updates every file that names the bundled release.
+# native/openssl-release-key.asc, and updates native/versions.json and THIRD_PARTY_NOTICES.md.
 #
 #   cmake -DOPENSSL_VERSION=3.5.9 -P native/cmake/UpdateOpenSSL.cmake
 
@@ -16,7 +16,6 @@ if(NOT OPENSSL_VERSION MATCHES "^3\\.5\\.[0-9]+$")
 endif()
 
 get_filename_component(ROOT "${CMAKE_CURRENT_LIST_DIR}/../.." ABSOLUTE)
-include("${CMAKE_CURRENT_LIST_DIR}/UpdateFiles.cmake")
 file(READ "${CMAKE_CURRENT_LIST_DIR}/../versions.json" MANIFEST)
 string(JSON OLD_VERSION GET "${MANIFEST}" openssl version)
 
@@ -56,23 +55,7 @@ string(REPLACE "${OPENSSL_NOTICE}"
     "| OpenSSL | ${OPENSSL_VERSION} | Apache License 2.0 | [Official release](https://github.com/openssl/openssl/releases/tag/openssl-${OPENSSL_VERSION}) |"
     NOTICES "${NOTICES}")
 
-# Every edit is made in memory first, so a file whose wording changed stops the update before anything is written.
-file(READ "${ROOT}/SECURITY.md" SECURITY)
-file(READ "${ROOT}/CHANGELOG.md" CHANGELOG)
-
-if(NOT OPENSSL_VERSION STREQUAL OLD_VERSION)
-    srtnet_replace_once(SECURITY SECURITY.md "| OpenSSL | ${OLD_VERSION} (LTS line) |" "| OpenSSL | ${OPENSSL_VERSION} (LTS line) |")
-endif()
-
-srtnet_changelog(CHANGELOG OpenSSL "${OLD_VERSION}" "${OPENSSL_VERSION}"
-    "with OpenSSL ${OLD_VERSION} linked statically"
-    "with OpenSSL ${OPENSSL_VERSION} linked statically"
-    "; see the [OpenSSL ${OLD_VERSION} release notes](https://github.com/openssl/openssl/releases/tag/openssl-${OLD_VERSION})."
-    "; see the [OpenSSL ${OPENSSL_VERSION} release notes](https://github.com/openssl/openssl/releases/tag/openssl-${OPENSSL_VERSION}).")
-
 file(WRITE "${ROOT}/THIRD_PARTY_NOTICES.md" "${NOTICES}")
-file(WRITE "${ROOT}/SECURITY.md" "${SECURITY}")
-file(WRITE "${ROOT}/CHANGELOG.md" "${CHANGELOG}")
 # Last, so an interrupted update leaves the old pin and the next run redoes every edit.
 file(WRITE "${CMAKE_CURRENT_LIST_DIR}/../versions.json" "${MANIFEST}\n")
-message(STATUS "Verified OpenSSL ${OPENSSL_VERSION}; updated native/versions.json, THIRD_PARTY_NOTICES.md, SECURITY.md and CHANGELOG.md. Review the version and SHA-256 changes before release.")
+message(STATUS "Verified OpenSSL ${OPENSSL_VERSION}; updated native/versions.json and THIRD_PARTY_NOTICES.md. Review the version and SHA-256 changes before release.")

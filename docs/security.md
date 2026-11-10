@@ -11,7 +11,7 @@ This page describes what you can and cannot expect from Srt.NET in terms of secu
 - **Write-only secrets.** The passphrase can be set but not read back, and Srt.NET never logs it.
 - **Safe native loading.** `srt.dll` is never loaded from the current directory or `PATH` on Windows.
 - **Bounded resource use.** The managed log queue holds at most 1024 records and drops the rest; send retries back off; the async engine uses one thread for all sockets.
-- **A verifiable supply chain.** libsrt and OpenSSL are built from pinned, verified sources in CI; releases are built from signed tags, carry build provenance and SBOM attestations, and are published with short-lived trusted-publishing credentials. See [verifying releases](https://github.com/notley-technologies/Srt.NET/blob/main/SECURITY.md#verifying-releases).
+- **A verifiable supply chain.** libsrt and OpenSSL are built from pinned, verified sources in CI; releases are built in CI from version tags, carry build provenance and SBOM attestations, and are published with short-lived trusted-publishing credentials. See [verifying releases](https://github.com/notley-technologies/Srt.NET/blob/main/SECURITY.md#verifying-releases).
 
 ## What Srt.NET does not provide
 
@@ -50,7 +50,7 @@ Code running in the same process as Srt.NET is trusted: it can read the applicat
 - **Complete mediation:** every native call goes through a socket lease; every public argument is validated.
 - **Open design:** confidentiality depends only on the passphrase.
 - **Least privilege:** CI tokens are read-only by default with per-job permissions; publishing uses OIDC trusted publishing.
-- **Separation of privilege:** a release needs a signed tag that only maintainers can create and an approval in the protected `nuget` environment.
+- **Separation of privilege:** a release needs a version tag, which only maintainers can create, and an approval in the protected `nuget` environment.
 - **Least common mechanism:** no shared temporary files; process-wide libsrt state is reference-counted and released deterministically.
 - **Psychological acceptability:** a .NET-idiomatic API (`using`, `async`/`await`, cancellation) and documentation that names unsafe patterns.
 

@@ -15,9 +15,6 @@ internal static class ToolContext
     /// <summary>The provenance manifest next to each native library (runtimes/&lt;rid&gt;/native/).</summary>
     internal const string BuildInfoFile = "srt.build-info.json";
 
-    /// <summary>The manifest's former name, which collided with application files of the same name on publish (NETSDK1152).</summary>
-    internal const string LegacyBuildInfoFile = "build-info.json";
-
     internal static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,

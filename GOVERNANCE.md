@@ -12,7 +12,7 @@ Srt.NET is an open-source project owned by Notley Technologies and maintained in
 
 ## Decisions
 
-- Day-to-day changes are decided in pull requests, reviewed against the [code review standards](CONTRIBUTING.md#code-review). A change merges when it passes the required checks and a maintainer approves it. While there is one maintainer, that maintainer reviews and merges their own changes; once there are two, every change needs the approval of a maintainer other than its author. The exception is patch updates of the bundled libsrt and OpenSSL that the native dependency workflow opens: they merge once the required checks pass, and maintainers review them before the next release ([updating native dependencies](CONTRIBUTING.md#updating-native-dependencies)). Setting the repository variable `NATIVE_UPDATES_AUTOMERGE` to `false` makes them wait for approval. Maintainers aim for consensus with the contributors involved.
+- Day-to-day changes are decided in pull requests, reviewed against the [code review standards](CONTRIBUTING.md#code-review). A change merges when it passes the required checks and a maintainer approves it. While there is one maintainer, that maintainer reviews and merges their own changes; once there are two, every change needs the approval of a maintainer other than its author. This includes the pull requests that the [native dependency workflow](MAINTAINING.md#native-dependency-updates) opens. Maintainers aim for consensus with the contributors involved.
 - Larger changes (public API design, supported platforms, bundled dependencies, licensing, release policy) start as an issue so that users can comment before work begins.
 - If contributors and maintainers disagree, the maintainers decide, and record the reasoning in the issue or pull request. The owner settles disagreements among maintainers.
 - Security decisions follow [SECURITY.md](SECURITY.md); vulnerability details stay private until a fix is released.
@@ -23,7 +23,7 @@ Contributors who have made sustained, high-quality contributions and reviews can
 
 ## Continuity
 
-Everything needed to continue the project is held by the organization, not by individuals: the repository, the release workflow, the trusted-publishing policy on nuget.org (no long-lived API keys), and the `nuget` deployment environment. Release tags are signed with each maintainer's own key, so a new maintainer signs with theirs. The project currently has one maintainer; adding a second maintainer, and a second owner of the GitHub and nuget.org organizations, is on the [roadmap](ROADMAP.md) so that the project can continue if any one person becomes unavailable.
+The repository, the release workflow and the `nuget` deployment environment belong to the GitHub organization, and publishing uses nuget.org trusted publishing, with no long-lived API keys. Publishing is tied to one person's nuget.org account: the trusted-publishing policy belongs to the account that created it, NuGet deactivates the policy if that account leaves the NotleyTechnologies organization, and the `NUGET_USER` variable names that account ([accounts, keys and secrets](MAINTAINING.md#accounts-keys-and-secrets)). Release tags are signed with each maintainer's own key, so a new maintainer signs with theirs. The project currently has one maintainer; adding a second maintainer, and a second owner of the GitHub and nuget.org organizations, is on the [roadmap](ROADMAP.md) so that the project can continue if any one person becomes unavailable.
 
 ## Changes to this document
 

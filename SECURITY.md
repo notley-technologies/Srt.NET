@@ -24,15 +24,15 @@ The maintainer aims to acknowledge reports within 5 business days, agree on a fi
 
 Every Srt.NET package ships native code that Srt.NET does not develop:
 
-| Component | Version | How it is shipped |
-| --- | --- | --- |
-| Haivision libsrt | 1.5.7 | Built from an immutable upstream commit, without patches |
-| OpenSSL | 3.5.9 (LTS line) | Built from the signature-verified release archive and linked statically into libsrt |
+| Component | How it is shipped |
+| --- | --- |
+| Haivision libsrt | Built from an immutable upstream commit, without patches |
+| OpenSSL (long-term support line) | Built from the signature-verified release archive and linked statically into libsrt |
 
-Exact versions, source revisions, archive checksums, and binary digests are recorded in `native/versions.json`, in each runtime's `runtimes/<rid>/native/srt.build-info.json`, and in the package's SBOM documents. Licenses and notices are in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+The bundled versions, source revisions, archive checksums, and binary digests are recorded in [native/versions.json](native/versions.json), in each runtime's `runtimes/<rid>/native/srt.build-info.json`, and in the package's SBOM documents. Licenses and notices are in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
 - **Where to report.** Report vulnerabilities in libsrt or OpenSSL to those projects: libsrt through [Haivision/srt](https://github.com/Haivision/srt/security), OpenSSL as described in its [security policy](https://openssl-library.org/policies/general/security-policy/). If a vulnerability depends on how Srt.NET builds, configures, or calls them, report it here as well.
-- **Monitoring.** A scheduled workflow (`.github/workflows/native-updates.yml`) compares the pinned versions with the latest OpenSSL 3.5 and libsrt releases every day and opens a pull request for each available update. Each pull request rebuilds and tests every runtime, including a build-time check that the new libsrt headers keep the structure layouts and constant values Srt.NET relies on. Patch updates merge automatically once CI passes, and a new libsrt minor or major release waits for review. A fix still reaches users only in a new Srt.NET release.
+- **Monitoring.** A scheduled workflow (`.github/workflows/native-updates.yml`) compares the pinned versions with the latest OpenSSL and libsrt releases every day and opens a pull request for each available update. CI rebuilds and tests every runtime on it, including a build-time check that the new libsrt headers keep the structure layouts and constant values Srt.NET relies on, and a maintainer reviews and merges it ([native dependency updates](MAINTAINING.md#native-dependency-updates)). A fix still reaches users only in a new Srt.NET release.
 - **Fixes.** Because OpenSSL is linked statically, applications cannot patch it independently: an OpenSSL or libsrt fix that affects the shipped configuration requires a rebuilt Srt.NET release, even when the managed code is unchanged. Srt.NET aims to publish such a patch release within 7 days of an upstream advisory rated High or Critical that applies to the shipped build, and records it under **Security** in [CHANGELOG.md](CHANGELOG.md).
 - **Reduced exposure.** libsrt uses OpenSSL's crypto library only for SRT encryption (AES, key wrapping, PBKDF2 key derivation, and random numbers); no TLS is involved. OpenSSL is built without DSO, engine, or provider-module loading and does not load `openssl.cnf` automatically. Linux libraries export only the `srt_*` API.
 
@@ -44,6 +44,8 @@ Release builds compile libsrt and OpenSSL from source in the tagged workflow run
 gh attestation verify Srt.NET.1.2.3.nupkg --repo notley-technologies/Srt.NET \
   --signer-workflow notley-technologies/Srt.NET/.github/workflows/build.yml --source-ref refs/tags/v1.2.3
 ```
+
+The `.nupkg` release asset also has an SBOM attestation that carries the package's SPDX document; add `--predicate-type https://spdx.dev/Document/v2.2` to the command above to verify it.
 
 nuget.org adds its repository signature to every package as a `.signature.p7s` entry, which changes the `.nupkg` digest but no other entry. To check a whole package downloaded from nuget.org, verify the matching GitHub release asset as shown above, then confirm that both packages contain the same files. Keep the two downloads in separate folders, here `release/` for the GitHub asset and `nuget/` for the nuget.org package: their file names differ only in letter case, so on Windows and macOS one would overwrite the other in a single folder.
 
