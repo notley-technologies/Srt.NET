@@ -454,14 +454,14 @@ public sealed unsafe partial class SrtSocket : IDisposable
     }
 
     /// <summary>Reads all native transport statistics. Clear resets interval counters, not lifetime totals.</summary>
-    /// <remarks>The structure ABI is verified for libsrt 1.5.0 through 1.5.7. Newer native versions require an ABI review.</remarks>
+    /// <remarks>libsrt fills the statistics structure without a size argument, so this accepts only libsrt 1.5.0 through the release bundled with this version of Srt.NET, and rejects newer releases, whose structure layout has not been checked.</remarks>
     public SrtStatistics GetStatistics(bool clear = false, bool instantaneous = false)
     {
         Version version = NativeVersion;
 
-        if (version.Major != 1 || version.Minor != 5 || version.Build > 7)
+        if (!NativeAbi.HasVerifiedStatisticsLayout(version))
         {
-            throw new NotSupportedException("Statistics require the verified libsrt 1.5.0–1.5.7 structure layout.");
+            throw new NotSupportedException($"Statistics require libsrt {NativeAbi.MinimumVersion} through {NativeAbi.VerifiedVersion}, the releases whose structure layout Srt.NET supports; libsrt {version} is loaded.");
         }
 
         using SrtSocketLease lease = handle.Borrow();

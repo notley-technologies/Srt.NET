@@ -16,7 +16,7 @@ This page describes what you can and cannot expect from Srt.NET in terms of secu
 ## What Srt.NET does not provide
 
 - **Encryption by default.** Connections are unencrypted unless the application sets a passphrase, because SRT encryption needs a secret shared by both peers.
-- **Payload integrity.** In libsrt 1.5.7, SRT encryption uses AES-CTR, which keeps data confidential but does not detect modification: an attacker on the path can flip bits in encrypted packets without being detected. SRT's authenticated mode (AES-GCM) is a preview compile option in libsrt 1.5.7 and is not enabled in the bundled builds. Where tampering matters, add your own integrity check, for example an HMAC or digest over each message or file.
+- **Payload integrity.** In libsrt 1.5, SRT encryption uses AES-CTR, which keeps data confidential but does not detect modification: an attacker on the path can flip bits in encrypted packets without being detected. SRT's authenticated mode (AES-GCM) is a preview compile option in libsrt 1.5 and is not enabled in the bundled builds. Where tampering matters, add your own integrity check, for example an HMAC or digest over each message or file.
 - **Peer authentication beyond the passphrase.** SRT has no certificates or user identities. Anyone who knows the passphrase can connect and decrypt; use a connection handler (`SetConnectionHandler`) to admit peers by address or stream ID.
 - **Confidential handshake metadata.** The stream ID and other handshake fields are sent unencrypted.
 - **Strong denial-of-service protection.** libsrt's handshake uses a cookie (computed with MD5) to make spoofed connection requests harder; it is not a cryptographic integrity mechanism. Rate-limit or firewall untrusted networks.

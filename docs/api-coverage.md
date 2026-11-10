@@ -1,8 +1,8 @@
 # Native API coverage audit
 
-This audit inventories all 72 exported C functions and all 61 socket-option identifiers in libsrt 1.5.7, pinned to `899348d8318eb9a3c5a5b6ec43c4a1114288773a`. Conditional APIs are included even when the native build disables them. The statistics inventory covers all 82 fields in that release. This is capability coverage, not a promise of identical method names or unrestricted native access.
+This audit inventories all 72 exported C functions and all 61 socket-option identifiers in libsrt 1.5.7 (commit `899348d8318eb9a3c5a5b6ec43c4a1114288773a`), the release bundled when this audit was made. Conditional APIs are included even when the native build disables them. The statistics inventory covers all 82 fields in that release. This is capability coverage, not a promise of identical method names or unrestricted native access. Later bundled releases must pass the native ABI check before they are bundled; functions and options they add are reviewed before the next Srt.NET release.
 
-Sources: [pinned C header](https://github.com/Haivision/srt/blob/899348d8318eb9a3c5a5b6ec43c4a1114288773a/srtcore/srt.h), [function contracts](https://github.com/Haivision/srt/blob/v1.5.7/docs/API/API-functions.md), [socket options](https://github.com/Haivision/srt/blob/v1.5.7/docs/API/API-socket-options.md).
+Sources: [1.5.7 C header](https://github.com/Haivision/srt/blob/899348d8318eb9a3c5a5b6ec43c4a1114288773a/srtcore/srt.h), [function contracts](https://github.com/Haivision/srt/blob/v1.5.7/docs/API/API-functions.md), [socket options](https://github.com/Haivision/srt/blob/v1.5.7/docs/API/API-socket-options.md).
 
 ## Scope and decisions
 
@@ -173,7 +173,7 @@ The enum sentinel SRTO_E_SIZE is not an option. Reserved numeric gaps are not op
 
 ## ABI and validation
 
-SrtStatistics exposes all 82 fields; see [statistics](statistics.md). The supported 64-bit layout is 496 bytes for statistics, 48 for message control, and 8 for a poll event. Native linger is 4 bytes on Windows and 8 on Unix. A native sizeof/offsetof probe and managed layout tests cover these contracts. Statistics are guarded to the reviewed 1.5.0–1.5.7 layout; review the ABI before enabling a later version. Message group metadata remains internal and zero-initialized.
+SrtStatistics exposes all 82 fields; see [statistics](statistics.md). The supported 64-bit layout is 496 bytes for statistics, 48 for message control, and 8 for a poll event. [native/abi/managed_abi.c](https://github.com/notley-technologies/Srt.NET/blob/main/native/abi/managed_abi.c) records those layouts, with each field's offset and type, and the libsrt option, error, rejection, state, log and readiness constants Srt.NET uses; the native build compiles it against the bundled headers and `AbiTests` checks it against the managed declarations. It leaves out `SRT_ERROR` and `SRT_INVALID_SOCK`, which srt.h declares as `static const` variables. Native linger is the operating system's structure, 4 bytes on Windows and 8 on Unix; the option tests cover its encoding. Statistics are guarded to libsrt 1.5.0 through the bundled release. Message group metadata remains internal and zero-initialized.
 
 Integration tests cover queued and delayed listener readiness, multiple sockets, interest updates, concurrent registration, cancellation/disposal, connection rejection, UTF-8 admission and per-peer encryption, metadata, statistics/reset behavior, log callback reentrancy, and native option types. Tests run on .NET 8 and .NET 10 on every platform, and on .NET Framework 4.8 on Windows. macOS still requires its CI runners.
 

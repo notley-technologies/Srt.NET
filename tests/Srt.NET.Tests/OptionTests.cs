@@ -21,7 +21,7 @@ public sealed class OptionTests : IClassFixture<RuntimeFixture>
     private static readonly object ReadOnly = new();
 
     /// <summary>
-    /// A value for each option that libsrt 1.5.7 accepts before binding and, where readable, reports back unchanged.
+    /// A value for each option that the bundled libsrt accepts before binding and, where readable, reports back unchanged.
     /// Every option needs an entry, so a new option fails <see cref="EveryOptionWorksOnAFreshSocket"/> until it is added.
     /// </summary>
     /// <remarks>

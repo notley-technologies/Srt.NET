@@ -23,7 +23,7 @@ public sealed class SocketTests : IClassFixture<RuntimeFixture>
     [Fact]
     public void LoadsPinnedNativeVersion()
     {
-        Assert.Equal(new Version(1, 5, 7), SrtSocket.NativeVersion);
+        Assert.Equal(TestSockets.BundledNativeVersion(), SrtSocket.NativeVersion);
     }
 
     [Theory]

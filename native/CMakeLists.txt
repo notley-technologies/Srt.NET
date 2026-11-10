@@ -277,6 +277,22 @@ if(MSVC)
     ExternalProject_Add_StepDependencies(srt build "${SRT_DLLMAIN_SOURCE}")
 endif()
 
+# The libsrt ABI that Srt.NET's managed declarations rely on: abi/managed_abi.c asserts structure layouts and constant
+# values, so compiling it against the installed headers fails the build when a libsrt update changes any of them.
+add_library(srt-abi-check OBJECT abi/managed_abi.c)
+target_include_directories(srt-abi-check PRIVATE "${INSTALL_ROOT}/include")
+set_target_properties(srt-abi-check PROPERTIES C_STANDARD 11 C_STANDARD_REQUIRED ON)
+add_dependencies(srt-abi-check srt)
+
+# Ninja decides what is out of date before libsrt installs new headers, so the check recompiles whenever libsrt is
+# reinstalled. Multi-configuration generators (Visual Studio, Xcode) check each target when they build it.
+get_property(SRTNET_MULTI_CONFIG GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
+
+if(NOT SRTNET_MULTI_CONFIG)
+    ExternalProject_Get_Property(srt STAMP_DIR)
+    set_source_files_properties(abi/managed_abi.c PROPERTIES OBJECT_DEPENDS "${STAMP_DIR}/srt-install")
+endif()
+
 # Build-machine paths and the test switch do not describe the binary, so they stay out of its manifest.
 set(OPENSSL_RECORDED_OPTIONS ${OPENSSL_OPTIONS})
 list(FILTER OPENSSL_RECORDED_OPTIONS EXCLUDE REGEX "^(--prefix=|CC=|no-tests$)")
@@ -300,3 +316,4 @@ add_custom_target(stage-native ALL
     DEPENDS srt
     WORKING_DIRECTORY "${REPOSITORY_ROOT}"
     VERBATIM)
+add_dependencies(stage-native srt-abi-check)
