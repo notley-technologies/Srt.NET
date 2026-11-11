@@ -14,7 +14,7 @@
     <Description>Local fixture for transitive Srt.NET package tests. Do not publish.</Description>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Srt.NET" Version="[$(SrtPackageVersion)]" />
+    <PackageReference Include="Srt.NET" Version="[$(SrtPackageVersion)]" Condition="'$(SrtPackageVersion)' != ''" />
     <Compile Include="../PackageSmokeTest.cs" Link="PackageSmokeTest.cs" />
   </ItemGroup>
 </Project>
