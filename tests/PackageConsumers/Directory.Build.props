@@ -14,4 +14,13 @@
     <LangVersion>latest</LangVersion>
     <Nullable>enable</Nullable>
   </PropertyGroup>
+  <!--
+    The package tests pass SrtPackageVersion, the version of the package they built, and restore that package from a
+    local feed. Without it, the projects leave out their Srt.NET references: a plain restore of every project file, as
+    GitHub's automatic dependency submission runs, then succeeds without looking for Srt.NET on nuget.org, and a build
+    stops here.
+  -->
+  <Target Name="RequireSrtPackageVersion" BeforeTargets="BeforeBuild" Condition="'$(SrtPackageVersion)' == ''">
+    <Error Text="Set SrtPackageVersion to the version of a locally built Srt.NET package. The package tests in tools/Srt.NET.PackageValidation do this." />
+  </Target>
 </Project>

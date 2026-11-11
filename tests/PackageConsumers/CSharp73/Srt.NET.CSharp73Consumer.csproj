@@ -20,10 +20,9 @@
     <!-- A warning in a down-level compile means part of the public surface is not usable from C# 7.3. -->
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <IsPackable>false</IsPackable>
-    <SrtPackageVersion Condition="'$(SrtPackageVersion)' == ''">0.1.0-dev</SrtPackageVersion>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Srt.NET" Version="[$(SrtPackageVersion)]" />
+    <PackageReference Include="Srt.NET" Version="[$(SrtPackageVersion)]" Condition="'$(SrtPackageVersion)' != ''" />
     <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
   </ItemGroup>
 </Project>
