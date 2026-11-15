@@ -12,8 +12,8 @@
 #   bash tests/linux/run-tests.sh linux-musl-x64 srtnet-test-musl
 #
 # Both images are pinned by multi-architecture digest; update them together with matching Alpine releases.
-FROM mcr.microsoft.com/dotnet/runtime:8.0-alpine3.24@sha256:31fb46f6ac03922a1156bcd9644b6e31a644add2e919bdea94444b4cc0aca21c AS runtime8
+FROM mcr.microsoft.com/dotnet/runtime:8.0-alpine3.24@sha256:a088dd404d4b1c7f7cad246d665eccfd5c05780a99a237a8643063d72dca2b0f AS runtime8
 
-FROM mcr.microsoft.com/dotnet/sdk:10.0-alpine3.24@sha256:5562fd626eec39f6f53218f9b7d7856ab7195d51d846568304fbe85071a3b6e6
+FROM mcr.microsoft.com/dotnet/sdk:10.0-alpine3.24@sha256:0294f285d062afacc8b5f6d7febb0cd4ee879320e5585fa15f2f4ebf1feb9ba7
 COPY --from=runtime8 /usr/share/dotnet/shared/Microsoft.NETCore.App/ /usr/share/dotnet/shared/Microsoft.NETCore.App/
 RUN apk add --no-cache clang build-base zlib-dev
