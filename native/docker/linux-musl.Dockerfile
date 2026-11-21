@@ -9,7 +9,7 @@
 # Alpine 3.22 is the oldest supported Alpine branch (musl 1.2.5, GCC 14); .NET 10 itself requires musl 1.2.3
 # or newer. The digest is the multi-architecture index, so the same line serves both runtimes; native/build-linux.sh
 # selects the platform. Update tag and digest together, then rebuild every Linux runtime.
-FROM alpine:3.22@sha256:bfe7ceb9f09ec0566c48fb93356e45a47a00be5a1dd14fa5b909e7709c66b034
+FROM alpine:3.22@sha256:49340b346798875b5592e5d420241f2f9cfba5f47e62ebb1446a1b34734e898f
 
 # build-base provides GCC, binutils (readelf), make, static libstdc++ and fortify-headers; perl runs OpenSSL's
 # Configure script and test suite; git fetches libsrt.
