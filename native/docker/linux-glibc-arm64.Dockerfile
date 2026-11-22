@@ -9,7 +9,7 @@
 # manylinux_2_28 is AlmaLinux 8 with glibc 2.28 and the GCC 14 toolset, so the library runs on glibc 2.28 and
 # newer (RHEL 8, Debian 10, Ubuntu 20.04 and later). The image is pinned by digest; update tag and digest
 # together, then rebuild every Linux runtime. Build on an arm64 host; elsewhere Docker emulates it with QEMU.
-FROM quay.io/pypa/manylinux_2_28_aarch64:2026.11.14-1@sha256:34a5e614a4eb26f73f8bf44cbbf2acf8011620453d03ea35a58537bb3cde44de
+FROM quay.io/pypa/manylinux_2_28_aarch64:2026.11.21-1@sha256:126d9eea9d6b1717f3e17b2b3ac51da04ef159a5f935dac36fe92d621dc8f246
 
 # Perl modules required by OpenSSL's Configure script and test suite.
 RUN dnf -y install \

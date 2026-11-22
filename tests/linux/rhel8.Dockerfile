@@ -11,7 +11,7 @@
 #   bash tests/linux/run-tests.sh linux-x64 srtnet-test-rhel8
 #
 # The SDK reports the rhel.8-x64 runtime identifier, so always pass -p:NativeRuntimeIdentifier explicitly.
-FROM registry.access.redhat.com/ubi8/ubi:8.10@sha256:44f19e308462e9152cb26d641fc0ce5bf6cbdab3cd101367aed67573eb2cf20e
+FROM registry.access.redhat.com/ubi8/ubi:8.10@sha256:31854d90b8a474b0253a2d4a1f71659097654d5992d6d8b811a679f4ff0084bc
 
 RUN dnf -y install dotnet-sdk-10.0 dotnet-runtime-8.0 git tar \
     && dnf clean all \
